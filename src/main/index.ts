@@ -9,6 +9,9 @@ app.whenReady().then(async () => {
       await createMainWindow()
     }
   })
+}).catch((error) => {
+  console.error('Failed to create window:', error)
+  app.quit()
 })
 
 app.on('window-all-closed', () => {
