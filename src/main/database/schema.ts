@@ -82,4 +82,21 @@ CREATE TABLE IF NOT EXISTS pull_requests (
 
 CREATE INDEX IF NOT EXISTS idx_prs_project ON pull_requests(project_id);
 CREATE INDEX IF NOT EXISTS idx_prs_task ON pull_requests(task_id);
+
+CREATE TABLE IF NOT EXISTS watch_rules (
+  id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  pattern TEXT NOT NULL,
+  events TEXT NOT NULL,
+  skill_name TEXT,
+  action TEXT NOT NULL DEFAULT 'notify',
+  custom_command TEXT,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  debounce_ms INTEGER NOT NULL DEFAULT 1000,
+  FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_watch_rules_project ON watch_rules(project_id);
+CREATE INDEX IF NOT EXISTS idx_watch_rules_enabled ON watch_rules(enabled);
 `

@@ -36,6 +36,16 @@ export const IPC_CHANNELS = {
   ERROR_REPORT: 'error:report',
   ERROR_SUBSCRIBE: 'error:subscribe',
   ERROR_UNSUBSCRIBE: 'error:unsubscribe',
+
+  // File Watcher
+  WATCHER_START: 'watcher:start',
+  WATCHER_STOP: 'watcher:stop',
+  WATCHER_ADD_RULE: 'watcher:addRule',
+  WATCHER_UPDATE_RULE: 'watcher:updateRule',
+  WATCHER_REMOVE_RULE: 'watcher:removeRule',
+  WATCHER_LIST_RULES: 'watcher:listRules',
+  WATCHER_SUBSCRIBE_EVENTS: 'watcher:subscribeEvents',
+  WATCHER_GET_ACTIVE: 'watcher:getActive',
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]

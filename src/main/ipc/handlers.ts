@@ -4,6 +4,7 @@ import { getProjectService } from '../projects'
 import { getTaskQueueService } from '../tasks'
 import { registerReviewIpcHandlers } from '../review/ipc'
 import { registerPRIpcHandlers } from '../pr/ipc'
+import { registerWatcherIpcHandlers } from '../watcher/ipc'
 import type { ProjectUpdate } from '../../shared/project-types'
 import type { CreateTaskInput } from '../../shared/task-types'
 
@@ -122,4 +123,7 @@ export function registerIpcHandlers(): void {
 
   // Register PR handlers
   registerPRIpcHandlers()
+
+  // Register watcher handlers
+  registerWatcherIpcHandlers()
 }
