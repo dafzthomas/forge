@@ -36,6 +36,8 @@
     "@radix-ui/react-tabs": "^1.1.13",
     "better-sqlite3": "^12.6.2",
     "chokidar": "^5.0.0",
+    "electron-log": "^5.4.3",
+    "electron-updater": "^6.7.3",
     "gray-matter": "^4.0.3",
     "openai": "^6.17.0",
     "react": "^19.2.4",
