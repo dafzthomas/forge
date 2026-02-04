@@ -54,6 +54,17 @@ export const IPC_CHANNELS = {
   SKILLS_IMPORT_FROM_CLAUDE_CODE: 'skills:importFromClaudeCode',
   SKILLS_LIST: 'skills:list',
   SKILLS_GET: 'skills:get',
+
+  // History
+  HISTORY_CREATE_CONVERSATION: 'history:createConversation',
+  HISTORY_ADD_MESSAGE: 'history:addMessage',
+  HISTORY_END_CONVERSATION: 'history:endConversation',
+  HISTORY_GET_CONVERSATION: 'history:getConversation',
+  HISTORY_SEARCH: 'history:search',
+  HISTORY_GET_RECENT: 'history:getRecent',
+  HISTORY_EXPORT: 'history:export',
+  HISTORY_LOG: 'history:log',
+  HISTORY_GET_LOGS: 'history:getLogs',
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]

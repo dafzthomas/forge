@@ -6,6 +6,7 @@ import { registerReviewIpcHandlers } from '../review/ipc'
 import { registerPRIpcHandlers } from '../pr/ipc'
 import { registerWatcherIpcHandlers } from '../watcher/ipc'
 import { registerSkillsIpcHandlers } from '../skills/ipc'
+import { registerHistoryIpcHandlers } from '../history/ipc'
 import type { ProjectUpdate } from '../../shared/project-types'
 import type { CreateTaskInput } from '../../shared/task-types'
 
@@ -130,4 +131,7 @@ export function registerIpcHandlers(): void {
 
   // Register skills handlers
   registerSkillsIpcHandlers()
+
+  // Register history handlers
+  registerHistoryIpcHandlers()
 }
