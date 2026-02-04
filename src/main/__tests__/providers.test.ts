@@ -208,6 +208,21 @@ describe('ModelProviderRegistry', () => {
         error: 'Connection failed',
       })
     })
+
+    it('should handle testConnection throwing an exception', async () => {
+      const throwingProvider = new MockProvider('throwing')
+      throwingProvider.testConnection = async () => {
+        throw new Error('Connection failed')
+      }
+      registry.register(throwingProvider)
+
+      const results = await registry.testAll()
+
+      expect(results.get('throwing')).toEqual({
+        success: false,
+        error: 'Connection failed',
+      })
+    })
   })
 })
 

@@ -78,8 +78,18 @@ export class ModelProviderRegistry {
     const results = new Map<string, { success: boolean; error?: string }>()
 
     const testPromises = Array.from(this.providers.entries()).map(async ([id, provider]) => {
-      const result = await provider.testConnection()
-      return { id, result }
+      try {
+        const result = await provider.testConnection()
+        return { id, result }
+      } catch (error) {
+        return {
+          id,
+          result: {
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          },
+        }
+      }
     })
 
     const testResults = await Promise.all(testPromises)
