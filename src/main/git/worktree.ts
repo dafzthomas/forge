@@ -37,6 +37,26 @@ export class WorktreeManager {
   }
 
   /**
+   * Validate task ID to prevent path traversal and other security issues
+   *
+   * @param taskId - The task identifier to validate
+   * @throws Error if taskId is invalid
+   */
+  private validateTaskId(taskId: string): void {
+    if (!taskId || taskId.trim() === '') {
+      throw new Error('Task ID cannot be empty')
+    }
+    // Only allow alphanumeric, hyphens, and underscores
+    if (!/^[a-zA-Z0-9_-]+$/.test(taskId)) {
+      throw new Error('Task ID contains invalid characters')
+    }
+    // Prevent path traversal (belt and suspenders)
+    if (taskId.includes('..') || taskId.includes('/') || taskId.includes('\\')) {
+      throw new Error('Task ID contains path traversal characters')
+    }
+  }
+
+  /**
    * Create a worktree for a task
    *
    * @param taskId - The task identifier
@@ -44,6 +64,7 @@ export class WorktreeManager {
    * @returns WorktreeInfo with path, branch, taskId, and createdAt
    */
   async createWorktree(taskId: string, baseBranch?: string): Promise<WorktreeInfo> {
+    this.validateTaskId(taskId)
     const branchName = `forge/task-${taskId}`
     const worktreePath = path.join(this.baseDir, `task-${taskId}`)
 
@@ -82,6 +103,7 @@ export class WorktreeManager {
    * @returns true if successfully removed, false otherwise
    */
   async removeWorktree(taskId: string): Promise<boolean> {
+    this.validateTaskId(taskId)
     const worktreePath = path.join(this.baseDir, `task-${taskId}`)
     const branchName = `forge/task-${taskId}`
 
@@ -165,6 +187,7 @@ export class WorktreeManager {
    * @returns true if worktree exists, false otherwise
    */
   async worktreeExists(taskId: string): Promise<boolean> {
+    this.validateTaskId(taskId)
     const worktreePath = path.join(this.baseDir, `task-${taskId}`)
 
     try {
@@ -217,6 +240,7 @@ export class WorktreeManager {
    * @returns The full path where the worktree would be located
    */
   getWorktreePath(taskId: string): string {
+    this.validateTaskId(taskId)
     return path.join(this.baseDir, `task-${taskId}`)
   }
 

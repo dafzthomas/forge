@@ -307,4 +307,71 @@ describe('WorktreeManager', () => {
       expect(() => new WorktreeManager('/non/existent/path')).toThrow()
     })
   })
+
+  describe('taskId validation', () => {
+    it('should reject empty taskId', async () => {
+      await expect(manager.createWorktree('')).rejects.toThrow('Task ID cannot be empty')
+      await expect(manager.removeWorktree('')).rejects.toThrow('Task ID cannot be empty')
+      await expect(manager.worktreeExists('')).rejects.toThrow('Task ID cannot be empty')
+      expect(() => manager.getWorktreePath('')).toThrow('Task ID cannot be empty')
+    })
+
+    it('should reject taskId with only whitespace', async () => {
+      await expect(manager.createWorktree('   ')).rejects.toThrow('Task ID cannot be empty')
+      await expect(manager.removeWorktree('  \t')).rejects.toThrow('Task ID cannot be empty')
+      await expect(manager.worktreeExists(' ')).rejects.toThrow('Task ID cannot be empty')
+      expect(() => manager.getWorktreePath('   ')).toThrow('Task ID cannot be empty')
+    })
+
+    it('should reject taskId with spaces', async () => {
+      await expect(manager.createWorktree('task with spaces')).rejects.toThrow(
+        'Task ID contains invalid characters'
+      )
+      await expect(manager.removeWorktree('task with spaces')).rejects.toThrow(
+        'Task ID contains invalid characters'
+      )
+      await expect(manager.worktreeExists('task with spaces')).rejects.toThrow(
+        'Task ID contains invalid characters'
+      )
+      expect(() => manager.getWorktreePath('task with spaces')).toThrow(
+        'Task ID contains invalid characters'
+      )
+    })
+
+    it('should reject taskId with path traversal characters', async () => {
+      await expect(manager.createWorktree('../../../etc/passwd')).rejects.toThrow(
+        'Task ID contains invalid characters'
+      )
+      await expect(manager.removeWorktree('foo/bar')).rejects.toThrow(
+        'Task ID contains invalid characters'
+      )
+      await expect(manager.worktreeExists('foo\\bar')).rejects.toThrow(
+        'Task ID contains invalid characters'
+      )
+      expect(() => manager.getWorktreePath('..')).toThrow('Task ID contains invalid characters')
+    })
+
+    it('should reject taskId with special characters', async () => {
+      await expect(manager.createWorktree('task@123')).rejects.toThrow(
+        'Task ID contains invalid characters'
+      )
+      await expect(manager.removeWorktree('task#456')).rejects.toThrow(
+        'Task ID contains invalid characters'
+      )
+      await expect(manager.worktreeExists('task$789')).rejects.toThrow(
+        'Task ID contains invalid characters'
+      )
+      expect(() => manager.getWorktreePath('task!abc')).toThrow(
+        'Task ID contains invalid characters'
+      )
+    })
+
+    it('should accept valid taskId with alphanumeric, hyphens, and underscores', async () => {
+      // These should not throw validation errors (may throw git errors if worktree doesn't exist)
+      expect(() => manager.getWorktreePath('valid-task-123')).not.toThrow()
+      expect(() => manager.getWorktreePath('valid_task_456')).not.toThrow()
+      expect(() => manager.getWorktreePath('ValidTask789')).not.toThrow()
+      expect(() => manager.getWorktreePath('abc-123_DEF')).not.toThrow()
+    })
+  })
 })
