@@ -2,6 +2,7 @@ import { app, BrowserWindow } from 'electron'
 import { createMainWindow } from './window'
 import { initDatabase } from './database'
 import { registerIpcHandlers } from './ipc/handlers'
+import { initAutoUpdater } from './updater'
 import path from 'path'
 
 app.whenReady().then(async () => {
@@ -13,7 +14,14 @@ app.whenReady().then(async () => {
   registerIpcHandlers()
 
   // Create main window
-  await createMainWindow()
+  const mainWindow = await createMainWindow()
+
+  // Initialize auto-updater (only in production)
+  if (!app.isPackaged) {
+    console.log('Skipping auto-updater in development mode')
+  } else {
+    initAutoUpdater(mainWindow)
+  }
 
   app.on('activate', async () => {
     if (BrowserWindow.getAllWindows().length === 0) {

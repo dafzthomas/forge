@@ -1,6 +1,7 @@
 import { Sidebar } from './components/Sidebar'
 import { MainPanel } from './components/MainPanel'
 import { StatusBar } from './components/StatusBar'
+import { UpdateNotification } from './components/updater'
 
 export default function App() {
   return (
@@ -10,6 +11,7 @@ export default function App() {
         <MainPanel />
       </div>
       <StatusBar />
+      <UpdateNotification />
     </div>
   )
 }
