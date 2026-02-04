@@ -22,6 +22,12 @@ describe('Layout Components', () => {
       render(<MainPanel />)
       expect(screen.getByPlaceholderText(/ask forge/i)).toBeInTheDocument()
     })
+
+    it('should have accessible label on task input', () => {
+      render(<MainPanel />)
+      const input = screen.getByPlaceholderText(/ask forge/i)
+      expect(input).toHaveAttribute('aria-label', 'Enter a task for Forge')
+    })
   })
 
   describe('StatusBar', () => {

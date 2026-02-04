@@ -38,6 +38,25 @@ describe('StatusIcon', () => {
     const icon = screen.getByText('●')
     expect(icon).toHaveClass('animate-pulse')
   })
+
+  it('has role="img" for accessibility', () => {
+    render(<StatusIcon status="completed" />)
+    const icon = screen.getByRole('img')
+    expect(icon).toBeInTheDocument()
+  })
+
+  it.each<[TaskStatus]>([
+    ['queued'],
+    ['running'],
+    ['completed'],
+    ['failed'],
+    ['paused'],
+    ['cancelled'],
+  ])('has aria-label for %s status', (status) => {
+    render(<StatusIcon status={status} />)
+    const icon = screen.getByRole('img')
+    expect(icon).toHaveAttribute('aria-label', `Status: ${status}`)
+  })
 })
 
 describe('PriorityBadge', () => {
@@ -87,37 +106,37 @@ describe('TaskCard', () => {
   it('shows cancel button for queued tasks', () => {
     const task = createMockTask({ status: 'queued' })
     render(<TaskCard task={task} onCancel={vi.fn()} />)
-    expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument()
+    expect(screen.getByText('Cancel')).toBeInTheDocument()
   })
 
   it('shows cancel button for running tasks', () => {
     const task = createMockTask({ status: 'running' })
     render(<TaskCard task={task} onCancel={vi.fn()} />)
-    expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument()
+    expect(screen.getByText('Cancel')).toBeInTheDocument()
   })
 
   it('does not show cancel button for completed tasks', () => {
     const task = createMockTask({ status: 'completed' })
     render(<TaskCard task={task} onCancel={vi.fn()} />)
-    expect(screen.queryByRole('button', { name: /cancel/i })).not.toBeInTheDocument()
+    expect(screen.queryByText('Cancel')).not.toBeInTheDocument()
   })
 
   it('does not show cancel button for failed tasks', () => {
     const task = createMockTask({ status: 'failed' })
     render(<TaskCard task={task} onCancel={vi.fn()} />)
-    expect(screen.queryByRole('button', { name: /cancel/i })).not.toBeInTheDocument()
+    expect(screen.queryByText('Cancel')).not.toBeInTheDocument()
   })
 
   it('does not show cancel button for cancelled tasks', () => {
     const task = createMockTask({ status: 'cancelled' })
     render(<TaskCard task={task} onCancel={vi.fn()} />)
-    expect(screen.queryByRole('button', { name: /cancel/i })).not.toBeInTheDocument()
+    expect(screen.queryByText('Cancel')).not.toBeInTheDocument()
   })
 
   it('does not show cancel button when onCancel is not provided', () => {
     const task = createMockTask({ status: 'running' })
     render(<TaskCard task={task} />)
-    expect(screen.queryByRole('button', { name: /cancel/i })).not.toBeInTheDocument()
+    expect(screen.queryByText('Cancel')).not.toBeInTheDocument()
   })
 
   it('calls onCancel with task id when cancel button is clicked', () => {
@@ -125,7 +144,7 @@ describe('TaskCard', () => {
     const task = createMockTask({ id: 'task-123', status: 'running' })
     render(<TaskCard task={task} onCancel={onCancel} />)
 
-    fireEvent.click(screen.getByRole('button', { name: /cancel/i }))
+    fireEvent.click(screen.getByText('Cancel'))
     expect(onCancel).toHaveBeenCalledWith('task-123')
   })
 
@@ -171,6 +190,68 @@ describe('TaskCard', () => {
     render(<TaskCard task={task} />)
 
     expect(screen.getByTestId('task-timing')).toBeInTheDocument()
+  })
+
+  describe('accessibility', () => {
+    it('has role="button" for keyboard accessibility', () => {
+      const task = createMockTask()
+      render(<TaskCard task={task} />)
+
+      const card = screen.getByTestId('task-card')
+      expect(card).toHaveAttribute('role', 'button')
+    })
+
+    it('has tabIndex={0} for keyboard focus', () => {
+      const task = createMockTask()
+      render(<TaskCard task={task} />)
+
+      const card = screen.getByTestId('task-card')
+      expect(card).toHaveAttribute('tabIndex', '0')
+    })
+
+    it('has aria-selected attribute', () => {
+      const task = createMockTask()
+      const { rerender } = render(<TaskCard task={task} selected={false} />)
+
+      const card = screen.getByTestId('task-card')
+      expect(card).toHaveAttribute('aria-selected', 'false')
+
+      rerender(<TaskCard task={task} selected={true} />)
+      expect(card).toHaveAttribute('aria-selected', 'true')
+    })
+
+    it('calls onSelect when Enter key is pressed', () => {
+      const onSelect = vi.fn()
+      const task = createMockTask({ id: 'task-keyboard' })
+      render(<TaskCard task={task} onSelect={onSelect} />)
+
+      const card = screen.getByTestId('task-card')
+      fireEvent.keyDown(card, { key: 'Enter' })
+
+      expect(onSelect).toHaveBeenCalledWith('task-keyboard')
+    })
+
+    it('calls onSelect when Space key is pressed', () => {
+      const onSelect = vi.fn()
+      const task = createMockTask({ id: 'task-space' })
+      render(<TaskCard task={task} onSelect={onSelect} />)
+
+      const card = screen.getByTestId('task-card')
+      fireEvent.keyDown(card, { key: ' ' })
+
+      expect(onSelect).toHaveBeenCalledWith('task-space')
+    })
+
+    it('does not call onSelect for other keys', () => {
+      const onSelect = vi.fn()
+      const task = createMockTask()
+      render(<TaskCard task={task} onSelect={onSelect} />)
+
+      const card = screen.getByTestId('task-card')
+      fireEvent.keyDown(card, { key: 'Tab' })
+
+      expect(onSelect).not.toHaveBeenCalled()
+    })
   })
 })
 
@@ -230,7 +311,7 @@ describe('TaskList', () => {
     render(<TaskList tasks={mockTasks} onCancelTask={onCancelTask} />)
 
     // Click the first cancel button (task-1 is queued)
-    const cancelButtons = screen.getAllByRole('button', { name: /cancel/i })
+    const cancelButtons = screen.getAllByText('Cancel')
     fireEvent.click(cancelButtons[0])
 
     expect(onCancelTask).toHaveBeenCalledWith('task-1')

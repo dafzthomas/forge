@@ -21,7 +21,11 @@ export function StatusIcon({ status }: { status: TaskStatus }) {
     cancelled: { icon: '⊘', color: 'text-gray-500' },
   }
   const { icon, color } = icons[status]
-  return <span className={color}>{icon}</span>
+  return (
+    <span className={color} role="img" aria-label={`Status: ${status}`}>
+      {icon}
+    </span>
+  )
 }
 
 /**
@@ -97,9 +101,20 @@ export function TaskCard({ task, onCancel, onSelect, selected = false }: TaskCar
     onCancel?.(task.id)
   }
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      handleCardClick()
+    }
+  }
+
   return (
     <div
       data-testid="task-card"
+      role="button"
+      tabIndex={0}
+      aria-selected={selected}
+      onKeyDown={handleKeyDown}
       className={`p-3 rounded border cursor-pointer hover:bg-gray-800 transition-colors ${
         selected ? 'border-blue-500 bg-gray-800' : 'border-gray-700'
       }`}

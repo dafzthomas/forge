@@ -24,6 +24,7 @@ export function MainPanel() {
         <input
           type="text"
           placeholder="Ask Forge..."
+          aria-label="Enter a task for Forge"
           className="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
         />
       </div>
