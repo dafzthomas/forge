@@ -1,8 +1,11 @@
 export const IPC_CHANNELS = {
   // Projects
   GET_PROJECTS: 'projects:get',
+  GET_PROJECT: 'projects:getOne',
   ADD_PROJECT: 'projects:add',
   REMOVE_PROJECT: 'projects:remove',
+  UPDATE_PROJECT: 'projects:update',
+  PROJECT_EXISTS_AT_PATH: 'projects:existsAtPath',
 
   // Tasks
   CREATE_TASK: 'tasks:create',
