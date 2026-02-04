@@ -9,10 +9,11 @@ export function GeneralSettings() {
 
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-400 mb-2">
+          <label htmlFor="max-parallel-agents" className="block text-sm font-medium text-gray-400 mb-2">
             Max Parallel Agents
           </label>
           <select
+            id="max-parallel-agents"
             value={maxParallelAgents}
             onChange={(e) => setMaxParallelAgents(Number(e.target.value))}
             className="bg-gray-800 border border-gray-600 rounded px-3 py-2"
