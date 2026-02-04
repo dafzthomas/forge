@@ -5,6 +5,20 @@ import { registerIpcHandlers } from './ipc/handlers'
 import { initAutoUpdater } from './updater'
 import path from 'path'
 
+// Set app name for about dialog
+app.setName('Forge')
+
+// macOS: Set about panel options
+if (process.platform === 'darwin') {
+  app.setAboutPanelOptions({
+    applicationName: 'Forge',
+    applicationVersion: app.getVersion(),
+    copyright: 'Copyright © 2024',
+    credits: 'Built with Electron, React, and TypeScript',
+    website: 'https://github.com/dafzthomas/forge',
+  })
+}
+
 app.whenReady().then(async () => {
   // Initialize database
   const dbPath = path.join(app.getPath('userData'), 'forge.db')

@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { app, ipcMain } from 'electron'
 import { IPC_CHANNELS } from '../../shared/ipc-types'
 import { getProjectService } from '../projects'
 import { getTaskQueueService } from '../tasks'
@@ -12,6 +12,15 @@ import type { CreateTaskInput } from '../../shared/task-types'
 
 export function registerIpcHandlers(): void {
   const projectService = getProjectService()
+
+  // App metadata
+  ipcMain.handle(IPC_CHANNELS.APP_GET_VERSION, () => {
+    return app.getVersion()
+  })
+
+  ipcMain.handle(IPC_CHANNELS.APP_GET_NAME, () => {
+    return app.getName()
+  })
 
   // Projects
   ipcMain.handle(IPC_CHANNELS.GET_PROJECTS, () => {

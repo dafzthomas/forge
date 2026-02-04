@@ -9,6 +9,7 @@ export async function createMainWindow(): Promise<BrowserWindow> {
     height: 800,
     minWidth: 800,
     minHeight: 600,
+    title: 'Forge - AI Coding Assistant',
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,

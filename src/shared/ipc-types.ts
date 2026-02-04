@@ -1,4 +1,8 @@
 export const IPC_CHANNELS = {
+  // App
+  APP_GET_VERSION: 'app:getVersion',
+  APP_GET_NAME: 'app:getName',
+
   // Projects
   GET_PROJECTS: 'projects:get',
   GET_PROJECT: 'projects:getOne',
