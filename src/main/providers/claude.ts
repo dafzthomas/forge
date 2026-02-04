@@ -52,8 +52,11 @@ export function convertMessages(messages: ChatMessage[]): {
   system?: string
   messages: Array<{ role: 'user' | 'assistant'; content: string }>
 } {
-  const systemMessage = messages.find((m) => m.role === 'system')
-  const system = systemMessage?.content
+  const systemMessages = messages.filter((m) => m.role === 'system')
+  if (systemMessages.length > 1) {
+    throw new Error('Multiple system messages not supported - concatenate them before calling')
+  }
+  const system = systemMessages[0]?.content
 
   const converted = messages
     .filter((m) => m.role !== 'system')
@@ -142,6 +145,10 @@ export class ClaudeProvider implements ModelProvider {
   async chat(messages: ChatMessage[], options?: ChatOptions): Promise<ChatResponse> {
     const { system, messages: convertedMessages } = convertMessages(messages)
 
+    if (convertedMessages.length === 0) {
+      throw new Error('At least one user or assistant message is required')
+    }
+
     const response = await this.client.messages.create({
       model: options?.model ?? DEFAULT_MODEL,
       max_tokens: options?.maxTokens ?? DEFAULT_MAX_TOKENS,
@@ -170,6 +177,10 @@ export class ClaudeProvider implements ModelProvider {
     options?: ChatOptions
   ): AsyncIterable<ChatStreamChunk> {
     const { system, messages: convertedMessages } = convertMessages(messages)
+
+    if (convertedMessages.length === 0) {
+      throw new Error('At least one user or assistant message is required')
+    }
 
     const stream = this.client.messages.stream({
       model: options?.model ?? DEFAULT_MODEL,

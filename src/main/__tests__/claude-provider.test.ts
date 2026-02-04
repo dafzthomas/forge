@@ -278,6 +278,15 @@ describe('ClaudeProvider', () => {
 
       await expect(provider.chat(messages)).rejects.toThrow('API Error')
     })
+
+    it('should throw error for empty messages in chat', async () => {
+      await expect(provider.chat([])).rejects.toThrow('At least one user or assistant message is required')
+    })
+
+    it('should throw error for only system message in chat', async () => {
+      const messages: ChatMessage[] = [{ role: 'system', content: 'System' }]
+      await expect(provider.chat(messages)).rejects.toThrow('At least one user or assistant message is required')
+    })
   })
 
   describe('chatStream', () => {
@@ -383,6 +392,25 @@ describe('ClaudeProvider', () => {
       expect(chunks).toHaveLength(1)
       expect(chunks[0]).toEqual({ content: 'Hello', done: false })
     })
+
+    it('should throw error for empty messages in chatStream', async () => {
+      const stream = provider.chatStream([])
+      await expect(async () => {
+        for await (const _ of stream) {
+          // consume
+        }
+      }).rejects.toThrow('At least one user or assistant message is required')
+    })
+
+    it('should throw error for only system message in chatStream', async () => {
+      const messages: ChatMessage[] = [{ role: 'system', content: 'System' }]
+      const stream = provider.chatStream(messages)
+      await expect(async () => {
+        for await (const _ of stream) {
+          // consume
+        }
+      }).rejects.toThrow('At least one user or assistant message is required')
+    })
   })
 })
 
@@ -442,16 +470,12 @@ describe('convertMessages', () => {
     expect(result.messages).toEqual([])
   })
 
-  it('should use first system message if multiple exist', () => {
+  it('should throw error for multiple system messages', () => {
     const messages: ChatMessage[] = [
       { role: 'system', content: 'First system' },
-      { role: 'user', content: 'Hi' },
       { role: 'system', content: 'Second system' },
+      { role: 'user', content: 'Hello' },
     ]
-
-    const result = convertMessages(messages)
-
-    expect(result.system).toBe('First system')
-    expect(result.messages).toEqual([{ role: 'user', content: 'Hi' }])
+    expect(() => convertMessages(messages)).toThrow('Multiple system messages not supported')
   })
 })
