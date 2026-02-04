@@ -47,6 +47,13 @@ export const IPC_CHANNELS = {
   WATCHER_SUBSCRIBE_EVENTS: 'watcher:subscribeEvents',
   WATCHER_UNSUBSCRIBE_EVENTS: 'watcher:unsubscribeEvents',
   WATCHER_GET_ACTIVE: 'watcher:getActive',
+
+  // Skills
+  SKILLS_IMPORT: 'skills:import',
+  SKILLS_IMPORT_DIRECTORY: 'skills:importDirectory',
+  SKILLS_IMPORT_FROM_CLAUDE_CODE: 'skills:importFromClaudeCode',
+  SKILLS_LIST: 'skills:list',
+  SKILLS_GET: 'skills:get',
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
