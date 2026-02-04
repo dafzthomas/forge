@@ -2,6 +2,7 @@ import { ipcMain } from 'electron'
 import { IPC_CHANNELS } from '../../shared/ipc-types'
 import { getProjectService } from '../projects'
 import { getTaskQueueService } from '../tasks'
+import { registerReviewIpcHandlers } from '../review/ipc'
 import type { ProjectUpdate } from '../../shared/project-types'
 import type { CreateTaskInput } from '../../shared/task-types'
 
@@ -114,4 +115,7 @@ export function registerIpcHandlers(): void {
     // TODO: Implement provider listing
     return []
   })
+
+  // Register review handlers
+  registerReviewIpcHandlers()
 }

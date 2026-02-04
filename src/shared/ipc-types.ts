@@ -20,6 +20,11 @@ export const IPC_CHANNELS = {
   // Providers
   TEST_PROVIDER: 'providers:test',
   GET_PROVIDERS: 'providers:get',
+
+  // Reviews
+  REQUEST_REVIEW: 'review:request',
+  GET_REVIEW: 'review:get',
+  LIST_REVIEWS: 'review:list',
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
