@@ -11,16 +11,17 @@ CREATE TABLE IF NOT EXISTS projects (
 CREATE TABLE IF NOT EXISTS tasks (
   id TEXT PRIMARY KEY,
   project_id TEXT NOT NULL,
-  name TEXT NOT NULL,
+  description TEXT NOT NULL,
+  skill_name TEXT,
   status TEXT NOT NULL DEFAULT 'queued',
-  skill TEXT,
+  priority TEXT NOT NULL DEFAULT 'normal',
   model TEXT,
-  priority INTEGER DEFAULT 0,
-  worktree_path TEXT,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   started_at TEXT,
   completed_at TEXT,
-  FOREIGN KEY (project_id) REFERENCES projects(id)
+  error TEXT,
+  result TEXT,
+  FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS task_history (

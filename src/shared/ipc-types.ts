@@ -10,6 +10,7 @@ export const IPC_CHANNELS = {
   // Tasks
   CREATE_TASK: 'tasks:create',
   GET_TASKS: 'tasks:get',
+  GET_TASK: 'tasks:getOne',
   CANCEL_TASK: 'tasks:cancel',
 
   // Settings

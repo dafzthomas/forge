@@ -1,7 +1,9 @@
 import { ipcMain } from 'electron'
 import { IPC_CHANNELS } from '../../shared/ipc-types'
 import { getProjectService } from '../projects'
+import { getTaskQueueService } from '../tasks'
 import type { ProjectUpdate } from '../../shared/project-types'
+import type { CreateTaskInput } from '../../shared/task-types'
 
 export function registerIpcHandlers(): void {
   const projectService = getProjectService()
@@ -56,21 +58,38 @@ export function registerIpcHandlers(): void {
   })
 
   // Tasks
-  ipcMain.handle(IPC_CHANNELS.CREATE_TASK, async (_event, task) => {
-    // TODO: Implement with task queue
-    return task
+  const taskQueueService = getTaskQueueService()
+
+  ipcMain.handle(IPC_CHANNELS.CREATE_TASK, (_event, input: CreateTaskInput) => {
+    try {
+      return { success: true, data: taskQueueService.createTask(input) }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
   })
 
-  ipcMain.handle(IPC_CHANNELS.GET_TASKS, async () => {
-    // TODO: Implement with database
-    // Args: _event, projectId
-    return []
+  ipcMain.handle(IPC_CHANNELS.GET_TASKS, (_event, projectId?: string) => {
+    try {
+      return { success: true, data: taskQueueService.getTasks(projectId) }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
   })
 
-  ipcMain.handle(IPC_CHANNELS.CANCEL_TASK, async () => {
-    // TODO: Implement task cancellation
-    // Args: _event, id
-    return true
+  ipcMain.handle(IPC_CHANNELS.GET_TASK, (_event, id: string) => {
+    try {
+      return { success: true, data: taskQueueService.getTask(id) }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.CANCEL_TASK, (_event, id: string) => {
+    try {
+      return { success: true, data: taskQueueService.cancelTask(id) }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
   })
 
   // Settings
