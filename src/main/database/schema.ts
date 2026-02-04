@@ -76,7 +76,8 @@ CREATE TABLE IF NOT EXISTS pull_requests (
   status TEXT NOT NULL DEFAULT 'open',
   created_at TEXT NOT NULL,
   FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
-  FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+  FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+  UNIQUE(project_id, number)
 );
 
 CREATE INDEX IF NOT EXISTS idx_prs_project ON pull_requests(project_id);

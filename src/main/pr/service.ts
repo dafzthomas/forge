@@ -9,11 +9,11 @@ import { randomUUID } from 'crypto'
 import { getDatabase } from '../database'
 import type { Database } from 'better-sqlite3'
 import type { PRRequest, PRResult, PRRow } from './types'
-import * as childProcess from 'child_process'
+import { execFile } from 'child_process'
 import { promisify } from 'util'
 import { WorktreeManager } from '../git/worktree'
 
-const execAsync = promisify(childProcess.exec)
+const execFileAsync = promisify(execFile)
 
 export class PRService {
   constructor(private db: Database | null = null) {
@@ -63,9 +63,9 @@ export class PRService {
 
     // Create PR using gh CLI
     const args = [
-      'gh', 'pr', 'create',
-      '--title', `"${title.replace(/"/g, '\\"')}"`,
-      '--body', `"${description.replace(/"/g, '\\"')}"`,
+      'pr', 'create',
+      '--title', title,
+      '--body', description,
       '--base', baseBranch,
     ]
 
@@ -73,8 +73,7 @@ export class PRService {
       args.push('--draft')
     }
 
-    const command = args.join(' ')
-    const { stdout } = await execAsync(command, { cwd: worktreePath })
+    const { stdout } = await execFileAsync('gh', args, { cwd: worktreePath })
 
     // Extract PR URL and number from output
     const prUrl = stdout.trim()
@@ -143,11 +142,21 @@ export class PRService {
       return null
     }
 
+    // Get project path from database
+    const project = db
+      .prepare('SELECT path FROM projects WHERE id = ?')
+      .get(pr.projectId) as { path: string } | undefined
+
+    if (!project) {
+      throw new Error(`Project not found for PR: ${id}`)
+    }
+
     try {
       // Get PR status from GitHub using gh CLI
-      const { stdout } = await execAsync(
-        `gh pr view ${pr.number} --json number,state,title`,
-        { cwd: process.cwd() }
+      const { stdout } = await execFileAsync(
+        'gh',
+        ['pr', 'view', String(pr.number), '--json', 'number,state,title'],
+        { cwd: project.path }
       )
 
       const ghPR = JSON.parse(stdout) as {
@@ -182,8 +191,9 @@ export class PRService {
   private async generateTitle(worktreePath: string, taskId: string): Promise<string> {
     try {
       // Get recent commits
-      const { stdout } = await execAsync(
-        'git log --oneline -5',
+      const { stdout } = await execFileAsync(
+        'git',
+        ['log', '--oneline', '-5'],
         { cwd: worktreePath }
       )
 
@@ -206,8 +216,9 @@ export class PRService {
   private async generateDescription(worktreePath: string, taskId: string): Promise<string> {
     try {
       // Get commit messages
-      const { stdout } = await execAsync(
-        'git log --oneline -10',
+      const { stdout } = await execFileAsync(
+        'git',
+        ['log', '--oneline', '-10'],
         { cwd: worktreePath }
       )
 
@@ -236,8 +247,9 @@ export class PRService {
   private async getDefaultBranch(worktreePath: string): Promise<string> {
     try {
       // Try to get the default branch from git
-      const { stdout } = await execAsync(
-        'git symbolic-ref refs/remotes/origin/HEAD',
+      const { stdout } = await execFileAsync(
+        'git',
+        ['symbolic-ref', 'refs/remotes/origin/HEAD'],
         { cwd: worktreePath }
       )
 

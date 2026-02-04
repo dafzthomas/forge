@@ -36,8 +36,15 @@ export function registerPRIpcHandlers(): void {
     if (description !== undefined && typeof description !== 'string') {
       return { success: false, error: 'description must be a string' }
     }
-    if (baseBranch !== undefined && typeof baseBranch !== 'string') {
-      return { success: false, error: 'baseBranch must be a string' }
+    if (baseBranch !== undefined) {
+      if (typeof baseBranch !== 'string') {
+        return { success: false, error: 'baseBranch must be a string' }
+      }
+      // Validate branch name characters
+      const branchNameRegex = /^[a-zA-Z0-9._\-/]+$/
+      if (!branchNameRegex.test(baseBranch)) {
+        return { success: false, error: 'baseBranch contains invalid characters' }
+      }
     }
     if (draft !== undefined && typeof draft !== 'boolean') {
       return { success: false, error: 'draft must be a boolean' }
