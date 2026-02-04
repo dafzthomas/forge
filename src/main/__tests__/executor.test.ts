@@ -538,4 +538,122 @@ describe('AgentExecutor', () => {
       })
     })
   })
+
+  describe('error handling', () => {
+    it('should emit tool_use event with error when tool is not registered', async () => {
+      const context = createMockContext()
+      // Do NOT register any tools
+
+      // Provider returns a tool call for an unregistered tool, then a final response
+      const mockChat = vi
+        .fn()
+        .mockResolvedValueOnce({
+          content: '<tool>unregistered_tool</tool><params>{"key": "value"}</params>',
+          model: 'mock-model',
+          usage: { inputTokens: 10, outputTokens: 15 },
+        })
+        .mockResolvedValueOnce({
+          content: 'I see that tool is not available.',
+          model: 'mock-model',
+          usage: { inputTokens: 20, outputTokens: 10 },
+        })
+
+      const toolProvider = createMockProvider({ chat: mockChat })
+
+      const toolEvents: AgentEvent[] = []
+      executor.on('tool_use', (event: AgentEvent) => toolEvents.push(event))
+
+      const result = await executor.execute(context, toolProvider, 'System prompt')
+
+      // Should emit tool_use event with error
+      expect(toolEvents).toHaveLength(1)
+      expect(toolEvents[0].type).toBe('tool_use')
+      const eventData = toolEvents[0].data as AgentToolUseEventData
+      expect(eventData.tool).toBe('unregistered_tool')
+      expect(eventData.params).toEqual({ key: 'value' })
+      expect(eventData.result).toBe('')
+      expect(eventData.error).toBe("Tool 'unregistered_tool' not registered")
+
+      // Should continue execution and complete successfully
+      expect(result.success).toBe(true)
+      expect(result.output).toBe('I see that tool is not available.')
+
+      // Provider should have been called twice (tool call + follow-up)
+      expect(mockChat).toHaveBeenCalledTimes(2)
+    })
+
+    it('should include error message in conversation when tool is not registered', async () => {
+      const context = createMockContext()
+      // Do NOT register any tools
+
+      const mockChat = vi
+        .fn()
+        .mockResolvedValueOnce({
+          content: '<tool>missing_tool</tool><params>{}</params>',
+          model: 'mock-model',
+          usage: { inputTokens: 10, outputTokens: 15 },
+        })
+        .mockResolvedValueOnce({
+          content: 'Understood.',
+          model: 'mock-model',
+          usage: { inputTokens: 20, outputTokens: 10 },
+        })
+
+      const toolProvider = createMockProvider({ chat: mockChat })
+
+      await executor.execute(context, toolProvider, 'System prompt')
+
+      // The second call should include the error message in the conversation
+      const secondCallMessages = mockChat.mock.calls[1][0] as ChatMessage[]
+      const userMessages = secondCallMessages.filter((m) => m.role === 'user')
+      const lastUserMessage = userMessages[userMessages.length - 1]
+      expect(lastUserMessage.content).toBe("Error: Tool 'missing_tool' is not available.")
+    })
+
+    it('should throw error when executing with duplicate task ID', async () => {
+      const context = createMockContext({ taskId: 'duplicate-task-id' })
+      let executionStarted = false
+
+      // Create a provider that takes time so we can test duplicate detection
+      const slowProvider = createMockProvider({
+        chat: vi.fn().mockImplementation(async () => {
+          executionStarted = true
+          await new Promise((resolve) => setTimeout(resolve, 100))
+          return {
+            content: 'Response',
+            model: 'mock-model',
+            usage: { inputTokens: 10, outputTokens: 5 },
+          }
+        }),
+      })
+
+      // Start first execution but don't await
+      const firstExecutionPromise = executor.execute(context, slowProvider, 'System prompt')
+
+      // Wait for first execution to start
+      while (!executionStarted) {
+        await new Promise((resolve) => setTimeout(resolve, 5))
+      }
+
+      // Attempting to execute with same task ID should throw
+      await expect(executor.execute(context, slowProvider, 'System prompt')).rejects.toThrow(
+        'Task duplicate-task-id is already running'
+      )
+
+      // Let first execution complete
+      await firstExecutionPromise
+    })
+
+    it('should allow same task ID after previous execution completes', async () => {
+      const context = createMockContext({ taskId: 'reusable-task-id' })
+
+      // First execution
+      const result1 = await executor.execute(context, mockProvider, 'System prompt')
+      expect(result1.success).toBe(true)
+
+      // Second execution with same task ID should work after first completes
+      const result2 = await executor.execute(context, mockProvider, 'System prompt')
+      expect(result2.success).toBe(true)
+    })
+  })
 })

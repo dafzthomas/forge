@@ -74,6 +74,11 @@ export class AgentExecutor extends EventEmitter {
   ): Promise<AgentResult> {
     const { taskId } = context
 
+    // Check for duplicate task ID
+    if (this.runningAgents.has(taskId)) {
+      throw new Error(`Task ${taskId} is already running`)
+    }
+
     // Set up abort controller for cancellation
     const abortController = new AbortController()
     this.runningAgents.set(taskId, abortController)
@@ -154,34 +159,57 @@ export class AgentExecutor extends EventEmitter {
           // Get the tool
           const tool = this.tools.get(toolName)
 
-          if (tool) {
-            let toolResult: string
-
-            try {
-              // Execute the tool
-              toolResult = await tool.execute(params, context)
-            } catch (error) {
-              toolResult = `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
-            }
-
-            // Emit tool_use event
+          if (!tool) {
+            // Emit tool_use event with error for unregistered tool
             this.emitEvent({
               type: 'tool_use',
               taskId,
               timestamp: new Date(),
-              data: { tool: toolName, params, result: toolResult } as AgentToolUseEventData,
+              data: {
+                tool: toolName,
+                params,
+                result: '',
+                error: `Tool '${toolName}' not registered`,
+              } as AgentToolUseEventData,
             })
 
-            // Add assistant message and tool result to conversation
+            // Add assistant message and error to conversation
             messages.push({ role: 'assistant', content: response.content })
-            messages.push({ role: 'user', content: `Tool result: ${toolResult}` })
+            messages.push({
+              role: 'user',
+              content: `Error: Tool '${toolName}' is not available.`,
+            })
 
-            // Continue loop to get next response
+            // Continue to next iteration instead of breaking
             continue
           }
+
+          let toolResult: string
+
+          try {
+            // Execute the tool
+            toolResult = await tool.execute(params, context)
+          } catch (error) {
+            toolResult = `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+          }
+
+          // Emit tool_use event
+          this.emitEvent({
+            type: 'tool_use',
+            taskId,
+            timestamp: new Date(),
+            data: { tool: toolName, params, result: toolResult } as AgentToolUseEventData,
+          })
+
+          // Add assistant message and tool result to conversation
+          messages.push({ role: 'assistant', content: response.content })
+          messages.push({ role: 'user', content: `Tool result: ${toolResult}` })
+
+          // Continue loop to get next response
+          continue
         }
 
-        // No tool call or tool not found - execution complete
+        // No tool call - execution complete
         break
       }
 

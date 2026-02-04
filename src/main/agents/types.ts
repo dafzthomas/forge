@@ -105,6 +105,7 @@ export interface AgentToolUseEventData {
   tool: string
   params: Record<string, unknown>
   result?: string
+  error?: string
 }
 
 /**
