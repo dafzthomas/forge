@@ -31,6 +31,11 @@ export const IPC_CHANNELS = {
   PR_GET: 'pr:get',
   PR_LIST: 'pr:list',
   PR_SYNC: 'pr:sync',
+
+  // Errors
+  ERROR_REPORT: 'error:report',
+  ERROR_SUBSCRIBE: 'error:subscribe',
+  ERROR_UNSUBSCRIBE: 'error:unsubscribe',
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
