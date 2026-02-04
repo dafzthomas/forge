@@ -3,6 +3,7 @@ import { IPC_CHANNELS } from '../../shared/ipc-types'
 import { getProjectService } from '../projects'
 import { getTaskQueueService } from '../tasks'
 import { registerReviewIpcHandlers } from '../review/ipc'
+import { registerPRIpcHandlers } from '../pr/ipc'
 import type { ProjectUpdate } from '../../shared/project-types'
 import type { CreateTaskInput } from '../../shared/task-types'
 
@@ -118,4 +119,7 @@ export function registerIpcHandlers(): void {
 
   // Register review handlers
   registerReviewIpcHandlers()
+
+  // Register PR handlers
+  registerPRIpcHandlers()
 }

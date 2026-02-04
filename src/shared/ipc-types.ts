@@ -25,6 +25,12 @@ export const IPC_CHANNELS = {
   REQUEST_REVIEW: 'review:request',
   GET_REVIEW: 'review:get',
   LIST_REVIEWS: 'review:list',
+
+  // Pull Requests
+  PR_CREATE: 'pr:create',
+  PR_GET: 'pr:get',
+  PR_LIST: 'pr:list',
+  PR_SYNC: 'pr:sync',
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
