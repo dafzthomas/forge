@@ -1,8 +1,17 @@
-import { contextBridge } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron'
+import type { IpcChannel } from '../shared/ipc-types'
 
 // Define the API that will be exposed to the renderer process
 const forgeAPI = {
-  // IPC methods will be added in Task 1.7
+  invoke: (channel: IpcChannel, ...args: unknown[]) => {
+    return ipcRenderer.invoke(channel, ...args)
+  },
+  on: (channel: string, callback: (...args: unknown[]) => void) => {
+    ipcRenderer.on(channel, (_event, ...args) => callback(...args))
+  },
+  off: (channel: string, callback: (...args: unknown[]) => void) => {
+    ipcRenderer.removeListener(channel, callback)
+  },
 }
 
 // Expose protected methods that allow the renderer process to use
@@ -11,10 +20,3 @@ contextBridge.exposeInMainWorld('forge', forgeAPI)
 
 // Export the type for use in renderer process
 export type ForgeAPI = typeof forgeAPI
-
-// Augment the Window interface for TypeScript
-declare global {
-  interface Window {
-    forge: ForgeAPI
-  }
-}
