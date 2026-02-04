@@ -36,7 +36,14 @@ export interface OpenAICompatibleProviderConfig {
 const DEFAULT_FALLBACK_MODEL = 'gpt-3.5-turbo'
 
 /**
- * Map OpenAI finish_reason to our internal stop reason type
+ * Default max tokens to use when not specified in options
+ */
+const DEFAULT_MAX_TOKENS = 4096
+
+/**
+ * Maps OpenAI finish_reason to internal format
+ * Note: OpenAI uses 'stop' for both natural completion and stop sequences.
+ * Unlike Anthropic's API, we cannot distinguish these cases.
  */
 export function mapFinishReason(
   reason?: string | null
@@ -112,7 +119,7 @@ export class OpenAICompatibleProvider implements ModelProvider {
     const response = await this.client.chat.completions.create({
       model: options?.model ?? this.config.defaultModel ?? DEFAULT_FALLBACK_MODEL,
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
-      max_tokens: options?.maxTokens,
+      max_tokens: options?.maxTokens ?? DEFAULT_MAX_TOKENS,
       temperature: options?.temperature,
       stop: options?.stopSequences,
     })
@@ -143,7 +150,7 @@ export class OpenAICompatibleProvider implements ModelProvider {
     const stream = await this.client.chat.completions.create({
       model: options?.model ?? this.config.defaultModel ?? DEFAULT_FALLBACK_MODEL,
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
-      max_tokens: options?.maxTokens,
+      max_tokens: options?.maxTokens ?? DEFAULT_MAX_TOKENS,
       temperature: options?.temperature,
       stop: options?.stopSequences,
       stream: true,
