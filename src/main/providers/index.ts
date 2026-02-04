@@ -25,3 +25,6 @@ export { ModelProviderRegistry } from './registry'
 // Export providers
 export { ClaudeProvider } from './claude'
 export type { ClaudeProviderConfig } from './claude'
+
+export { BedrockProvider } from './bedrock'
+export type { BedrockProviderConfig } from './bedrock'

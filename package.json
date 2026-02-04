@@ -21,6 +21,8 @@
   "license": "ISC",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.72.1",
+    "@aws-sdk/client-bedrock-runtime": "^3.982.0",
+    "@aws-sdk/credential-providers": "^3.982.0",
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tabs": "^1.1.13",
