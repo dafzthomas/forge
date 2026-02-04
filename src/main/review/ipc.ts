@@ -45,7 +45,7 @@ export function registerReviewIpcHandlers(): void {
         projectId,
         taskId: taskId as string | undefined,
         files: files as string[] | undefined,
-        focus: focus as string | undefined,
+        focus: focus as 'security' | 'performance' | 'style' | 'all' | undefined,
       }
       const result = await reviewService.requestReview(validatedRequest)
       return { success: true, data: result }

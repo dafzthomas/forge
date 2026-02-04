@@ -87,7 +87,7 @@ export class FileWatcherService {
       this.handleFileEvent('unlink', path, projectId, ruleMap)
     )
 
-    watcher.on('error', (error: Error) => {
+    watcher.on('error', (error: unknown) => {
       console.error(`Watcher error for project ${projectId}:`, error)
     })
 

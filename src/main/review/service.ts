@@ -64,7 +64,7 @@ export class ReviewService {
       const prompt = this.buildReviewPrompt(files, request.focus)
 
       // Get AI provider
-      const provider = this.providerRegistry.getDefaultProvider()
+      const provider = this.providerRegistry.getDefault()
       if (!provider) {
         throw new Error('No AI provider configured')
       }
@@ -292,7 +292,7 @@ export class ReviewService {
           comment !== null && typeof comment === 'object' &&
           typeof (comment as Record<string, unknown>).file === 'string'
         )
-        .map((comment) => ({
+        .map((comment: Record<string, unknown>) => ({
           id: randomUUID(),
           file: String(comment.file),
           line: typeof comment.line === 'number' ? comment.line : undefined,
