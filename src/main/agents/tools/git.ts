@@ -6,7 +6,43 @@
  */
 
 import { spawn } from 'child_process'
+import * as path from 'path'
+import * as fs from 'fs'
 import type { AgentTool, AgentContext } from '../types'
+
+/**
+ * Validate that a file path is within the working directory
+ * Prevents directory traversal attacks through git commands
+ *
+ * @param filePath - The file path to validate
+ * @param workingDir - The working directory
+ * @throws Error if path is outside working directory
+ */
+function validateGitPath(filePath: string, workingDir: string): void {
+  const fullPath = path.resolve(workingDir, filePath)
+
+  // Resolve working directory symlinks to get the real path
+  let realWorkingDir: string
+  try {
+    realWorkingDir = fs.realpathSync(workingDir)
+  } catch {
+    realWorkingDir = path.normalize(workingDir)
+  }
+
+  // For existing files, resolve symlinks to prevent symlink bypass attacks
+  let realFullPath: string
+  try {
+    realFullPath = fs.realpathSync(fullPath)
+  } catch {
+    // File doesn't exist - use normalized path
+    realFullPath = path.normalize(fullPath)
+  }
+
+  if (!realFullPath.startsWith(realWorkingDir + path.sep) &&
+      realFullPath !== realWorkingDir) {
+    throw new Error(`Access denied: file path outside working directory: ${filePath}`)
+  }
+}
 
 /**
  * Execute a git command and return the output
@@ -95,6 +131,8 @@ export const gitDiffTool: AgentTool = {
     }
 
     if (filePath) {
+      // Validate the path is within working directory
+      validateGitPath(filePath, context.workingDir)
       args.push('--', filePath)
     }
 
@@ -139,8 +177,13 @@ export const gitCommitTool: AgentTool = {
       throw new Error('Commit message is required')
     }
 
-    // If specific files are provided, stage them first
+    // If specific files are provided, validate and stage them first
     if (files && files.length > 0) {
+      // Validate all file paths before staging
+      for (const file of files) {
+        validateGitPath(file, context.workingDir)
+      }
+
       const addResult = await executeGit(['add', ...files], context.workingDir)
 
       // Check if add failed

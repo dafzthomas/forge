@@ -101,6 +101,52 @@ describe('Filesystem Tools', () => {
         readFileTool.execute({ path: 'nonexistent.txt' }, context)
       ).rejects.toThrow()
     })
+
+    it('should reject symlink pointing outside working directory', async () => {
+      // Create a symlink that points outside the working directory
+      const symlinkPath = path.join(tempDir, 'malicious-link')
+      await fs.promises.symlink('/etc/passwd', symlinkPath)
+
+      await expect(
+        readFileTool.execute({ path: 'malicious-link' }, context)
+      ).rejects.toThrow('Access denied')
+    })
+
+    it('should reject file accessed through symlinked directory', async () => {
+      // Create a symlink to a directory outside working directory
+      const symlinkDir = path.join(tempDir, 'link-to-etc')
+      await fs.promises.symlink('/etc', symlinkDir)
+
+      await expect(
+        readFileTool.execute({ path: 'link-to-etc/passwd' }, context)
+      ).rejects.toThrow('Access denied')
+    })
+
+    it('should reject files exceeding size limit', async () => {
+      // Create a file larger than 10MB
+      const largeFile = path.join(tempDir, 'large-file.bin')
+      const tenMB = 10 * 1024 * 1024
+      // Write a file slightly over 10MB
+      const buffer = Buffer.alloc(tenMB + 1024)
+      await fs.promises.writeFile(largeFile, buffer)
+
+      await expect(
+        readFileTool.execute({ path: 'large-file.bin' }, context)
+      ).rejects.toThrow('File too large')
+    })
+
+    it('should allow files at exactly the size limit', async () => {
+      // Create a file at exactly 10MB
+      const maxSizeFile = path.join(tempDir, 'max-size-file.bin')
+      const tenMB = 10 * 1024 * 1024
+      const buffer = Buffer.alloc(tenMB)
+      buffer.fill('a')
+      await fs.promises.writeFile(maxSizeFile, buffer)
+
+      // This should not throw
+      const result = await readFileTool.execute({ path: 'max-size-file.bin' }, context)
+      expect(result.length).toBe(tenMB)
+    })
   })
 
   describe('write_file', () => {
@@ -156,6 +202,26 @@ describe('Filesystem Tools', () => {
     it('should reject absolute paths outside working directory', async () => {
       await expect(
         writeFileTool.execute({ path: '/tmp/outside.txt', content: 'Bad content' }, context)
+      ).rejects.toThrow('Access denied')
+    })
+
+    it('should reject writing through symlink pointing outside', async () => {
+      // Create a symlink that points outside the working directory
+      const symlinkPath = path.join(tempDir, 'malicious-link')
+      await fs.promises.symlink('/tmp/malicious-write-target', symlinkPath)
+
+      await expect(
+        writeFileTool.execute({ path: 'malicious-link', content: 'Bad content' }, context)
+      ).rejects.toThrow('Access denied')
+    })
+
+    it('should reject writing through symlinked directory', async () => {
+      // Create a symlink to a directory outside working directory
+      const symlinkDir = path.join(tempDir, 'link-to-tmp')
+      await fs.promises.symlink('/tmp', symlinkDir)
+
+      await expect(
+        writeFileTool.execute({ path: 'link-to-tmp/malicious.txt', content: 'Bad content' }, context)
       ).rejects.toThrow('Access denied')
     })
   })
@@ -381,6 +447,27 @@ describe('Git Tools', () => {
       expect(result).toContain('modified1')
       expect(result).not.toContain('modified2')
     })
+
+    it('should reject path traversal attempts', async () => {
+      await expect(
+        gitDiffTool.execute({ staged: false, path: '../../../etc/passwd' }, context)
+      ).rejects.toThrow('Access denied')
+    })
+
+    it('should reject absolute paths outside working directory', async () => {
+      await expect(
+        gitDiffTool.execute({ staged: false, path: '/etc/passwd' }, context)
+      ).rejects.toThrow('Access denied')
+    })
+
+    it('should reject symlinks pointing outside working directory', async () => {
+      const symlinkPath = path.join(tempDir, 'malicious-link')
+      await fs.promises.symlink('/etc/passwd', symlinkPath)
+
+      await expect(
+        gitDiffTool.execute({ staged: false, path: 'malicious-link' }, context)
+      ).rejects.toThrow('Access denied')
+    })
   })
 
   describe('git_commit', () => {
@@ -425,6 +512,47 @@ describe('Git Tools', () => {
       const result = await gitCommitTool.execute({ message: 'Empty commit' }, context)
 
       expect(result.toLowerCase()).toMatch(/nothing|no changes|error/)
+    })
+
+    it('should reject files with path traversal', async () => {
+      await expect(
+        gitCommitTool.execute({
+          message: 'Malicious commit',
+          files: ['../../../etc/passwd']
+        }, context)
+      ).rejects.toThrow('Access denied')
+    })
+
+    it('should reject files with absolute paths outside working directory', async () => {
+      await expect(
+        gitCommitTool.execute({
+          message: 'Malicious commit',
+          files: ['/etc/passwd']
+        }, context)
+      ).rejects.toThrow('Access denied')
+    })
+
+    it('should reject symlinks pointing outside working directory in files', async () => {
+      const symlinkPath = path.join(tempDir, 'malicious-link')
+      await fs.promises.symlink('/etc/passwd', symlinkPath)
+
+      await expect(
+        gitCommitTool.execute({
+          message: 'Malicious commit',
+          files: ['malicious-link']
+        }, context)
+      ).rejects.toThrow('Access denied')
+    })
+
+    it('should reject if any file in array has path traversal', async () => {
+      await fs.promises.writeFile(path.join(tempDir, 'good-file.txt'), 'content')
+
+      await expect(
+        gitCommitTool.execute({
+          message: 'Mixed commit',
+          files: ['good-file.txt', '../bad-file.txt']
+        }, context)
+      ).rejects.toThrow('Access denied')
     })
   })
 })
