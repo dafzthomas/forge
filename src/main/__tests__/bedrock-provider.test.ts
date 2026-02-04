@@ -59,8 +59,8 @@ describe('BedrockProvider', () => {
 
   const configWithExplicitCreds: BedrockProviderConfig = {
     region: 'us-west-2',
-    accessKeyId: 'AKIAIOSFODNN7EXAMPLE',
-    secretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+    accessKeyId: 'test-access-key-id',
+    secretAccessKey: 'test-secret-access-key',
   }
 
   const configWithEnvFallback: BedrockProviderConfig = {
@@ -97,8 +97,8 @@ describe('BedrockProvider', () => {
       expect(constructorCalls).toHaveLength(1)
       expect(constructorCalls[0].region).toBe('us-west-2')
       expect(constructorCalls[0].credentials).toEqual({
-        accessKeyId: 'AKIAIOSFODNN7EXAMPLE',
-        secretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+        accessKeyId: 'test-access-key-id',
+        secretAccessKey: 'test-secret-access-key',
       })
     })
 
@@ -345,6 +345,14 @@ describe('BedrockProvider', () => {
       const messages: ChatMessage[] = [{ role: 'user', content: 'Hello' }]
 
       await expect(provider.chat(messages)).rejects.toThrow('Bedrock API Error')
+    })
+
+    it('should throw error when response body is null', async () => {
+      mockSend.mockResolvedValueOnce({ body: null })
+
+      const messages: ChatMessage[] = [{ role: 'user', content: 'Hello' }]
+
+      await expect(provider.chat(messages)).rejects.toThrow('No response body from Bedrock')
     })
 
     it('should throw error for empty messages', async () => {

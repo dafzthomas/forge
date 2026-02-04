@@ -180,6 +180,9 @@ export class BedrockProvider implements ModelProvider {
     })
 
     const response = await this.client.send(command)
+    if (!response.body) {
+      throw new Error('No response body from Bedrock')
+    }
     const result = JSON.parse(new TextDecoder().decode(response.body))
 
     return {
