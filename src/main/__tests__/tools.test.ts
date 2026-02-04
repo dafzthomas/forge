@@ -361,6 +361,8 @@ describe('Git Tools', () => {
     execSync('git init', { cwd: tempDir, stdio: 'pipe' })
     execSync('git config user.email "test@test.com"', { cwd: tempDir, stdio: 'pipe' })
     execSync('git config user.name "Test User"', { cwd: tempDir, stdio: 'pipe' })
+    // Disable GPG signing in test environment (avoids 1Password/gpg-agent issues)
+    execSync('git config commit.gpgsign false', { cwd: tempDir, stdio: 'pipe' })
   })
 
   afterEach(async () => {

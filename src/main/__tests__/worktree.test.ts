@@ -28,6 +28,8 @@ describe('WorktreeManager', () => {
     execSync('git init', { cwd: projectPath, stdio: 'pipe' })
     execSync('git config user.email "test@test.com"', { cwd: projectPath, stdio: 'pipe' })
     execSync('git config user.name "Test User"', { cwd: projectPath, stdio: 'pipe' })
+    // Disable GPG signing in test environment (avoids 1Password/gpg-agent issues)
+    execSync('git config commit.gpgsign false', { cwd: projectPath, stdio: 'pipe' })
 
     // Create initial commit (required for worktrees to work)
     await fs.promises.writeFile(path.join(projectPath, 'README.md'), '# Test Project')
