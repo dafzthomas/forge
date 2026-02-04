@@ -64,4 +64,21 @@ CREATE TABLE IF NOT EXISTS review_comments (
 CREATE INDEX IF NOT EXISTS idx_reviews_project ON reviews(project_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_task ON reviews(task_id);
 CREATE INDEX IF NOT EXISTS idx_review_comments_review ON review_comments(review_id);
+
+CREATE TABLE IF NOT EXISTS pull_requests (
+  id TEXT PRIMARY KEY,
+  task_id TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  number INTEGER NOT NULL,
+  url TEXT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  status TEXT NOT NULL DEFAULT 'open',
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+  FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_prs_project ON pull_requests(project_id);
+CREATE INDEX IF NOT EXISTS idx_prs_task ON pull_requests(task_id);
 `
