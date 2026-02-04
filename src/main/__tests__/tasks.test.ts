@@ -122,6 +122,15 @@ describe('TaskQueueService', () => {
       expect(task.startedAt).toBeUndefined()
       expect(task.completedAt).toBeUndefined()
     })
+
+    it('should reject invalid projectId', () => {
+      expect(() =>
+        service.createTask({
+          projectId: 'non-existent-project-id',
+          description: 'Test task',
+        })
+      ).toThrow('Project not found: non-existent-project-id')
+    })
   })
 
   describe('getTasks', () => {
@@ -522,6 +531,95 @@ describe('TaskQueueService', () => {
       expect(() => service.setMaxConcurrent(-1)).toThrow(
         'Max concurrent must be at least 1'
       )
+    })
+  })
+
+  describe('claimNextTask', () => {
+    it('should atomically claim the next task', () => {
+      service.createTask({
+        projectId: testProjectId,
+        description: 'Task to claim',
+      })
+
+      const claimed = service.claimNextTask()
+
+      expect(claimed).not.toBeNull()
+      expect(claimed!.status).toBe('running')
+      expect(claimed!.startedAt).toBeInstanceOf(Date)
+    })
+
+    it('should return null when no tasks available', () => {
+      const claimed = service.claimNextTask()
+      expect(claimed).toBeNull()
+    })
+
+    it('should return null when at max concurrency', () => {
+      service.setMaxConcurrent(1)
+
+      const task1 = service.createTask({
+        projectId: testProjectId,
+        description: 'Task 1',
+      })
+      service.createTask({
+        projectId: testProjectId,
+        description: 'Task 2',
+      })
+
+      service.updateTaskStatus(task1.id, 'running')
+
+      const claimed = service.claimNextTask()
+      expect(claimed).toBeNull()
+    })
+
+    it('should respect priority when claiming', () => {
+      service.createTask({
+        projectId: testProjectId,
+        description: 'Normal task',
+        priority: 'normal',
+      })
+      service.createTask({
+        projectId: testProjectId,
+        description: 'High task',
+        priority: 'high',
+      })
+
+      const claimed = service.claimNextTask()
+
+      expect(claimed).not.toBeNull()
+      expect(claimed!.description).toBe('High task')
+      expect(claimed!.priority).toBe('high')
+    })
+
+    it('should claim tasks sequentially', () => {
+      service.setMaxConcurrent(3)
+
+      service.createTask({
+        projectId: testProjectId,
+        description: 'Task 1',
+      })
+      service.createTask({
+        projectId: testProjectId,
+        description: 'Task 2',
+      })
+      service.createTask({
+        projectId: testProjectId,
+        description: 'Task 3',
+      })
+
+      const claimed1 = service.claimNextTask()
+      const claimed2 = service.claimNextTask()
+      const claimed3 = service.claimNextTask()
+
+      expect(claimed1!.description).toBe('Task 1')
+      expect(claimed2!.description).toBe('Task 2')
+      expect(claimed3!.description).toBe('Task 3')
+
+      // All should be running
+      expect(service.getRunningCount()).toBe(3)
+
+      // No more should be claimable
+      const claimed4 = service.claimNextTask()
+      expect(claimed4).toBeNull()
     })
   })
 

@@ -35,5 +35,6 @@ CREATE TABLE IF NOT EXISTS task_history (
 
 CREATE INDEX IF NOT EXISTS idx_tasks_project ON tasks(project_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+CREATE INDEX IF NOT EXISTS idx_tasks_queue ON tasks(status, priority, created_at);
 CREATE INDEX IF NOT EXISTS idx_history_task ON task_history(task_id);
 `

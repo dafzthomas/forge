@@ -18,13 +18,23 @@ export class TaskQueueService {
    * Create a new task and add it to the queue.
    * @param input - Task creation parameters
    * @returns The created task
+   * @throws Error if projectId does not exist
    */
   createTask(input: CreateTaskInput): Task {
+    const db = getDatabase()
+
+    // Validate projectId exists
+    const projectExists = db
+      .prepare('SELECT 1 FROM projects WHERE id = ?')
+      .get(input.projectId)
+    if (!projectExists) {
+      throw new Error(`Project not found: ${input.projectId}`)
+    }
+
     const id = randomUUID()
     const now = new Date().toISOString()
     const priority = input.priority || 'normal'
 
-    const db = getDatabase()
     const stmt = db.prepare(`
       INSERT INTO tasks (id, project_id, description, skill_name, status, priority, model, created_at)
       VALUES (?, ?, ?, ?, 'queued', ?, ?, ?)
@@ -227,6 +237,34 @@ export class TaskQueueService {
    */
   canStartMore(): boolean {
     return this.getRunningCount() < this.maxConcurrent
+  }
+
+  /**
+   * Atomically claim the next task to run.
+   * This method combines checking concurrency and updating status in a transaction
+   * to prevent race conditions when multiple workers try to claim tasks.
+   * @returns The claimed task or null if none available or at max concurrency
+   */
+  claimNextTask(): Task | null {
+    const db = getDatabase()
+
+    const transaction = db.transaction(() => {
+      const runningCount = this.getRunningCount()
+      if (runningCount >= this.maxConcurrent) {
+        return null
+      }
+
+      const next = this.getNextTask()
+      if (!next) {
+        return null
+      }
+
+      // Mark as running atomically
+      this.updateTaskStatus(next.id, 'running')
+      return this.getTask(next.id)
+    })
+
+    return transaction()
   }
 
   /**
