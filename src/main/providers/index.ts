@@ -28,3 +28,6 @@ export type { ClaudeProviderConfig } from './claude'
 
 export { BedrockProvider } from './bedrock'
 export type { BedrockProviderConfig } from './bedrock'
+
+export { OpenAICompatibleProvider } from './openai-compatible'
+export type { OpenAICompatibleProviderConfig } from './openai-compatible'
