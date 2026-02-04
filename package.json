@@ -15,6 +15,7 @@
     "test:run": "vitest run",
     "lint": "eslint src --ext .ts,.tsx",
     "typecheck": "tsc --noEmit",
+    "generate-icons": "node scripts/generate-icons.cjs",
     "package": "electron-builder",
     "package:mac": "electron-builder --mac",
     "package:win": "electron-builder --win",
