@@ -45,6 +45,7 @@ export const IPC_CHANNELS = {
   WATCHER_REMOVE_RULE: 'watcher:removeRule',
   WATCHER_LIST_RULES: 'watcher:listRules',
   WATCHER_SUBSCRIBE_EVENTS: 'watcher:subscribeEvents',
+  WATCHER_UNSUBSCRIBE_EVENTS: 'watcher:unsubscribeEvents',
   WATCHER_GET_ACTIVE: 'watcher:getActive',
 } as const
 

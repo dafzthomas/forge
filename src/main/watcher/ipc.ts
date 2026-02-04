@@ -11,6 +11,7 @@ import type { CreateWatchRuleInput, UpdateWatchRuleInput, WatchEvent } from './t
 
 export function registerWatcherIpcHandlers(): void {
   const watcherService = getFileWatcherService()
+  const subscriptions = new Map<number, () => void>()
 
   // Start watching a project
   ipcMain.handle(IPC_CHANNELS.WATCHER_START, (_event, projectId: unknown) => {
@@ -47,7 +48,7 @@ export function registerWatcherIpcHandlers(): void {
   })
 
   // Add a watch rule
-  ipcMain.handle(IPC_CHANNELS.WATCHER_ADD_RULE, (_event, input: unknown) => {
+  ipcMain.handle(IPC_CHANNELS.WATCHER_ADD_RULE, async (_event, input: unknown) => {
     // Validate input
     if (!input || typeof input !== 'object') {
       return { success: false, error: 'Invalid input format' }
@@ -75,8 +76,18 @@ export function registerWatcherIpcHandlers(): void {
     if (typeof pattern !== 'string' || !pattern) {
       return { success: false, error: 'pattern is required and must be a string' }
     }
+    // Validate pattern doesn't contain path traversal
+    const hasPathTraversal = pattern.includes('..') || pattern.startsWith('/')
+    if (hasPathTraversal) {
+      return { success: false, error: 'pattern cannot contain path traversal (..) or absolute paths' }
+    }
     if (!Array.isArray(events) || events.length === 0) {
       return { success: false, error: 'events is required and must be a non-empty array' }
+    }
+    // Validate events array contents
+    const validEvents = ['add', 'change', 'unlink']
+    if (!events.every((e: unknown) => typeof e === 'string' && validEvents.includes(e))) {
+      return { success: false, error: 'events must only contain: add, change, unlink' }
     }
     if (typeof enabled !== 'boolean') {
       return { success: false, error: 'enabled is required and must be a boolean' }
@@ -109,7 +120,7 @@ export function registerWatcherIpcHandlers(): void {
         debounceMs,
       }
 
-      const rule = watcherService.addRule(validatedInput)
+      const rule = await watcherService.addRule(validatedInput)
       return { success: true, data: rule }
     } catch (error) {
       return {
@@ -120,7 +131,7 @@ export function registerWatcherIpcHandlers(): void {
   })
 
   // Update a watch rule
-  ipcMain.handle(IPC_CHANNELS.WATCHER_UPDATE_RULE, (_event, id: unknown, updates: unknown) => {
+  ipcMain.handle(IPC_CHANNELS.WATCHER_UPDATE_RULE, async (_event, id: unknown, updates: unknown) => {
     if (typeof id !== 'string' || !id) {
       return { success: false, error: 'id is required and must be a string' }
     }
@@ -129,8 +140,51 @@ export function registerWatcherIpcHandlers(): void {
       return { success: false, error: 'Invalid updates format' }
     }
 
+    const updateObj = updates as Record<string, unknown>
+
+    // Validate pattern if provided
+    if (updateObj.pattern !== undefined) {
+      if (typeof updateObj.pattern !== 'string' || !updateObj.pattern) {
+        return { success: false, error: 'pattern must be a non-empty string' }
+      }
+      if (updateObj.pattern.includes('..') || updateObj.pattern.startsWith('/')) {
+        return { success: false, error: 'pattern cannot contain path traversal (..) or absolute paths' }
+      }
+    }
+
+    // Validate events if provided
+    if (updateObj.events !== undefined) {
+      if (!Array.isArray(updateObj.events) || updateObj.events.length === 0) {
+        return { success: false, error: 'events must be a non-empty array' }
+      }
+      const validEvents = ['add', 'change', 'unlink']
+      if (!updateObj.events.every((e: unknown) => typeof e === 'string' && validEvents.includes(e))) {
+        return { success: false, error: 'events must only contain: add, change, unlink' }
+      }
+    }
+
+    // Validate optional fields
+    if (updateObj.name !== undefined && (typeof updateObj.name !== 'string' || !updateObj.name)) {
+      return { success: false, error: 'name must be a non-empty string' }
+    }
+    if (updateObj.skillName !== undefined && typeof updateObj.skillName !== 'string') {
+      return { success: false, error: 'skillName must be a string' }
+    }
+    if (updateObj.action !== undefined && !['notify', 'skill', 'custom'].includes(updateObj.action as string)) {
+      return { success: false, error: 'action must be notify, skill, or custom' }
+    }
+    if (updateObj.customCommand !== undefined && typeof updateObj.customCommand !== 'string') {
+      return { success: false, error: 'customCommand must be a string' }
+    }
+    if (updateObj.enabled !== undefined && typeof updateObj.enabled !== 'boolean') {
+      return { success: false, error: 'enabled must be a boolean' }
+    }
+    if (updateObj.debounceMs !== undefined && (typeof updateObj.debounceMs !== 'number' || updateObj.debounceMs < 0)) {
+      return { success: false, error: 'debounceMs must be a non-negative number' }
+    }
+
     try {
-      const rule = watcherService.updateRule(id, updates as UpdateWatchRuleInput)
+      const rule = await watcherService.updateRule(id, updates as UpdateWatchRuleInput)
       if (!rule) {
         return { success: false, error: 'Rule not found' }
       }
@@ -144,13 +198,13 @@ export function registerWatcherIpcHandlers(): void {
   })
 
   // Remove a watch rule
-  ipcMain.handle(IPC_CHANNELS.WATCHER_REMOVE_RULE, (_event, id: unknown) => {
+  ipcMain.handle(IPC_CHANNELS.WATCHER_REMOVE_RULE, async (_event, id: unknown) => {
     if (typeof id !== 'string' || !id) {
       return { success: false, error: 'id is required and must be a string' }
     }
 
     try {
-      const removed = watcherService.removeRule(id)
+      const removed = await watcherService.removeRule(id)
       if (!removed) {
         return { success: false, error: 'Rule not found' }
       }
@@ -182,15 +236,42 @@ export function registerWatcherIpcHandlers(): void {
 
   // Subscribe to watch events
   ipcMain.handle(IPC_CHANNELS.WATCHER_SUBSCRIBE_EVENTS, (event) => {
+    const webContentsId = event.sender.id
+
+    // Clean up existing subscription if any
+    const existingUnsubscribe = subscriptions.get(webContentsId)
+    if (existingUnsubscribe) {
+      existingUnsubscribe()
+    }
+
     const unsubscribe = watcherService.subscribe((watchEvent: WatchEvent) => {
-      // Send event to renderer
-      BrowserWindow.getAllWindows().forEach((window) => {
-        window.webContents.send('watcher:event', watchEvent)
-      })
+      if (!event.sender.isDestroyed()) {
+        event.sender.send('watcher:event', watchEvent)
+      }
     })
 
-    // Return unsubscribe function (though IPC doesn't support this directly)
-    // The renderer should call WATCHER_UNSUBSCRIBE_EVENTS when done
+    subscriptions.set(webContentsId, unsubscribe)
+
+    // Clean up on window close
+    event.sender.once('destroyed', () => {
+      const unsub = subscriptions.get(webContentsId)
+      if (unsub) {
+        unsub()
+        subscriptions.delete(webContentsId)
+      }
+    })
+
+    return { success: true }
+  })
+
+  // Unsubscribe from watch events
+  ipcMain.handle(IPC_CHANNELS.WATCHER_UNSUBSCRIBE_EVENTS, (event) => {
+    const webContentsId = event.sender.id
+    const unsubscribe = subscriptions.get(webContentsId)
+    if (unsubscribe) {
+      unsubscribe()
+      subscriptions.delete(webContentsId)
+    }
     return { success: true }
   })
 

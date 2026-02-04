@@ -210,16 +210,29 @@ export class FileWatcherService {
     event: WatchEvent,
     projectId: string
   ): Promise<void> {
-    // Replace placeholders in command
+    // Shell-escape placeholder values to prevent command injection
+    const escapedPath = this.shellEscape(event.path)
+    const escapedType = this.shellEscape(event.type)
+    const escapedTimestamp = this.shellEscape(event.timestamp.toISOString())
+
     const processedCommand = command
-      .replace(/\{path\}/g, event.path)
-      .replace(/\{type\}/g, event.type)
-      .replace(/\{timestamp\}/g, event.timestamp.toISOString())
+      .replace(/\{path\}/g, escapedPath)
+      .replace(/\{type\}/g, escapedType)
+      .replace(/\{timestamp\}/g, escapedTimestamp)
 
     // For now, just log it - actual execution would need shell tool
     console.log(`Would execute custom command: ${processedCommand}`)
 
     // TODO: Integrate with shell tool from agents/tools/shell.ts
+    // Note: Actual execution should use execFile with proper shell handling
+  }
+
+  /**
+   * Simple shell escape function
+   * Wraps in single quotes and escapes existing single quotes
+   */
+  private shellEscape(str: string): string {
+    return `'${str.replace(/'/g, "'\\''")}'`
   }
 
   /**
@@ -242,7 +255,7 @@ export class FileWatcherService {
   /**
    * Add a watch rule
    */
-  addRule(input: CreateWatchRuleInput): WatchRule {
+  async addRule(input: CreateWatchRuleInput): Promise<WatchRule> {
     const rule: WatchRule = {
       id: randomUUID(),
       ...input,
@@ -252,9 +265,8 @@ export class FileWatcherService {
 
     // If project is being watched, restart it to pick up the new rule
     if (this.watchers.has(rule.projectId)) {
-      this.stopWatching(rule.projectId).then(() => {
-        this.startWatching(rule.projectId)
-      })
+      await this.stopWatching(rule.projectId)
+      this.startWatching(rule.projectId)
     }
 
     return rule
@@ -263,7 +275,7 @@ export class FileWatcherService {
   /**
    * Update a watch rule
    */
-  updateRule(id: string, updates: UpdateWatchRuleInput): WatchRule | null {
+  async updateRule(id: string, updates: UpdateWatchRuleInput): Promise<WatchRule | null> {
     const db = getDatabase()
     const row = db.prepare('SELECT * FROM watch_rules WHERE id = ?').get(id) as
       | WatchRuleRow
@@ -280,9 +292,8 @@ export class FileWatcherService {
 
     // Restart watcher if project is being watched
     if (this.watchers.has(updated.projectId)) {
-      this.stopWatching(updated.projectId).then(() => {
-        this.startWatching(updated.projectId)
-      })
+      await this.stopWatching(updated.projectId)
+      this.startWatching(updated.projectId)
     }
 
     return updated
@@ -291,7 +302,7 @@ export class FileWatcherService {
   /**
    * Remove a watch rule
    */
-  removeRule(id: string): boolean {
+  async removeRule(id: string): Promise<boolean> {
     const db = getDatabase()
     const row = db.prepare('SELECT project_id FROM watch_rules WHERE id = ?').get(id) as
       | { project_id: string }
@@ -305,9 +316,8 @@ export class FileWatcherService {
 
     // Restart watcher if project is being watched
     if (this.watchers.has(row.project_id)) {
-      this.stopWatching(row.project_id).then(() => {
-        this.startWatching(row.project_id)
-      })
+      await this.stopWatching(row.project_id)
+      this.startWatching(row.project_id)
     }
 
     return true

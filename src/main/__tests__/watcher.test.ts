@@ -64,7 +64,7 @@ describe('FileWatcherService', () => {
   })
 
   describe('Rule Management', () => {
-    it('should create a watch rule', () => {
+    it('should create a watch rule', async () => {
       const input: CreateWatchRuleInput = {
         projectId: testProjectId,
         name: 'Watch TypeScript files',
@@ -75,7 +75,7 @@ describe('FileWatcherService', () => {
         debounceMs: 1000,
       }
 
-      const rule = service.addRule(input)
+      const rule = await service.addRule(input)
 
       expect(rule.id).toBeDefined()
       expect(rule.projectId).toBe(testProjectId)
@@ -85,7 +85,7 @@ describe('FileWatcherService', () => {
       expect(rule.enabled).toBe(true)
     })
 
-    it('should list rules for a project', () => {
+    it('should list rules for a project', async () => {
       const input1: CreateWatchRuleInput = {
         projectId: testProjectId,
         name: 'Rule 1',
@@ -104,8 +104,8 @@ describe('FileWatcherService', () => {
         debounceMs: 500,
       }
 
-      service.addRule(input1)
-      service.addRule(input2)
+      await service.addRule(input1)
+      await service.addRule(input2)
 
       const rules = service.listRules(testProjectId)
       expect(rules).toHaveLength(2)
@@ -113,7 +113,7 @@ describe('FileWatcherService', () => {
       expect(rules.some((r) => r.name === 'Rule 2')).toBe(true)
     })
 
-    it('should update a watch rule', () => {
+    it('should update a watch rule', async () => {
       const input: CreateWatchRuleInput = {
         projectId: testProjectId,
         name: 'Original Name',
@@ -123,8 +123,8 @@ describe('FileWatcherService', () => {
         debounceMs: 1000,
       }
 
-      const rule = service.addRule(input)
-      const updated = service.updateRule(rule.id, {
+      const rule = await service.addRule(input)
+      const updated = await service.updateRule(rule.id, {
         name: 'Updated Name',
         enabled: false,
       })
@@ -135,7 +135,7 @@ describe('FileWatcherService', () => {
       expect(updated?.pattern).toBe('**/*.ts') // Unchanged
     })
 
-    it('should remove a watch rule', () => {
+    it('should remove a watch rule', async () => {
       const input: CreateWatchRuleInput = {
         projectId: testProjectId,
         name: 'To Remove',
@@ -145,8 +145,8 @@ describe('FileWatcherService', () => {
         debounceMs: 1000,
       }
 
-      const rule = service.addRule(input)
-      const removed = service.removeRule(rule.id)
+      const rule = await service.addRule(input)
+      const removed = await service.removeRule(rule.id)
 
       expect(removed).toBe(true)
 
@@ -154,19 +154,19 @@ describe('FileWatcherService', () => {
       expect(rules).toHaveLength(0)
     })
 
-    it('should return false when removing non-existent rule', () => {
-      const removed = service.removeRule('non-existent-id')
+    it('should return false when removing non-existent rule', async () => {
+      const removed = await service.removeRule('non-existent-id')
       expect(removed).toBe(false)
     })
 
-    it('should return null when updating non-existent rule', () => {
-      const updated = service.updateRule('non-existent-id', { name: 'New Name' })
+    it('should return null when updating non-existent rule', async () => {
+      const updated = await service.updateRule('non-existent-id', { name: 'New Name' })
       expect(updated).toBeNull()
     })
   })
 
   describe('Watcher Lifecycle', () => {
-    it('should start watching a project', () => {
+    it('should start watching a project', async () => {
       const input: CreateWatchRuleInput = {
         projectId: testProjectId,
         name: 'Test Rule',
@@ -176,7 +176,7 @@ describe('FileWatcherService', () => {
         debounceMs: 1000,
       }
 
-      service.addRule(input)
+      await service.addRule(input)
       service.startWatching(testProjectId)
 
       const activeWatchers = service.getActiveWatchers()
@@ -193,7 +193,7 @@ describe('FileWatcherService', () => {
         debounceMs: 1000,
       }
 
-      service.addRule(input)
+      await service.addRule(input)
       service.startWatching(testProjectId)
       await service.stopWatching(testProjectId)
 
@@ -201,7 +201,7 @@ describe('FileWatcherService', () => {
       expect(activeWatchers).not.toContain(testProjectId)
     })
 
-    it('should not start watching if no enabled rules', () => {
+    it('should not start watching if no enabled rules', async () => {
       const input: CreateWatchRuleInput = {
         projectId: testProjectId,
         name: 'Disabled Rule',
@@ -211,14 +211,14 @@ describe('FileWatcherService', () => {
         debounceMs: 1000,
       }
 
-      service.addRule(input)
+      await service.addRule(input)
       service.startWatching(testProjectId)
 
       const activeWatchers = service.getActiveWatchers()
       expect(activeWatchers).not.toContain(testProjectId)
     })
 
-    it('should handle starting watcher for already watched project', () => {
+    it('should handle starting watcher for already watched project', async () => {
       const input: CreateWatchRuleInput = {
         projectId: testProjectId,
         name: 'Test Rule',
@@ -228,7 +228,7 @@ describe('FileWatcherService', () => {
         debounceMs: 1000,
       }
 
-      service.addRule(input)
+      await service.addRule(input)
       service.startWatching(testProjectId)
       service.startWatching(testProjectId) // Should not throw
 
@@ -273,7 +273,7 @@ describe('FileWatcherService', () => {
   })
 
   describe('Rule Actions', () => {
-    it('should create rule with skill action', () => {
+    it('should create rule with skill action', async () => {
       const input: CreateWatchRuleInput = {
         projectId: testProjectId,
         name: 'Run Skill',
@@ -285,13 +285,13 @@ describe('FileWatcherService', () => {
         debounceMs: 1000,
       }
 
-      const rule = service.addRule(input)
+      const rule = await service.addRule(input)
 
       expect(rule.action).toBe('skill')
       expect(rule.skillName).toBe('test-skill')
     })
 
-    it('should create rule with custom command action', () => {
+    it('should create rule with custom command action', async () => {
       const input: CreateWatchRuleInput = {
         projectId: testProjectId,
         name: 'Run Command',
@@ -303,13 +303,13 @@ describe('FileWatcherService', () => {
         debounceMs: 1000,
       }
 
-      const rule = service.addRule(input)
+      const rule = await service.addRule(input)
 
       expect(rule.action).toBe('custom')
       expect(rule.customCommand).toBe('echo {path}')
     })
 
-    it('should create rule with multiple event types', () => {
+    it('should create rule with multiple event types', async () => {
       const input: CreateWatchRuleInput = {
         projectId: testProjectId,
         name: 'Multi Event',
@@ -319,12 +319,12 @@ describe('FileWatcherService', () => {
         debounceMs: 1000,
       }
 
-      const rule = service.addRule(input)
+      const rule = await service.addRule(input)
 
       expect(rule.events).toEqual(['add', 'change', 'unlink'])
     })
 
-    it('should handle different debounce times', () => {
+    it('should handle different debounce times', async () => {
       const input1: CreateWatchRuleInput = {
         projectId: testProjectId,
         name: 'Fast',
@@ -343,8 +343,8 @@ describe('FileWatcherService', () => {
         debounceMs: 5000,
       }
 
-      const rule1 = service.addRule(input1)
-      const rule2 = service.addRule(input2)
+      const rule1 = await service.addRule(input1)
+      const rule2 = await service.addRule(input2)
 
       expect(rule1.debounceMs).toBe(100)
       expect(rule2.debounceMs).toBe(5000)
@@ -352,7 +352,7 @@ describe('FileWatcherService', () => {
   })
 
   describe('Database Persistence', () => {
-    it('should persist rules to database', () => {
+    it('should persist rules to database', async () => {
       const input: CreateWatchRuleInput = {
         projectId: testProjectId,
         name: 'Persisted Rule',
@@ -362,7 +362,7 @@ describe('FileWatcherService', () => {
         debounceMs: 1000,
       }
 
-      service.addRule(input)
+      await service.addRule(input)
 
       // Create new service instance to test persistence
       const newService = new FileWatcherService()
@@ -372,7 +372,7 @@ describe('FileWatcherService', () => {
       expect(rules[0].name).toBe('Persisted Rule')
     })
 
-    it('should handle JSON serialization of events array', () => {
+    it('should handle JSON serialization of events array', async () => {
       const input: CreateWatchRuleInput = {
         projectId: testProjectId,
         name: 'JSON Test',
@@ -382,7 +382,7 @@ describe('FileWatcherService', () => {
         debounceMs: 1000,
       }
 
-      const rule = service.addRule(input)
+      const rule = await service.addRule(input)
       const loaded = service.listRules(testProjectId)[0]
 
       expect(loaded.events).toEqual(['add', 'change', 'unlink'])
