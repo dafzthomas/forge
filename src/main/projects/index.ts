@@ -16,6 +16,17 @@ export class ProjectService {
    * @throws Error if a project already exists at the given path
    */
   addProject(projectPath: string, name?: string): Project {
+    // Validate path is not empty
+    if (!projectPath || projectPath.trim() === '') {
+      throw new Error('Project path cannot be empty')
+    }
+
+    // Check for absolute path (Unix or Windows)
+    const isAbsolute = projectPath.startsWith('/') || /^[a-zA-Z]:/.test(projectPath)
+    if (!isAbsolute) {
+      throw new Error('Project path must be absolute')
+    }
+
     const normalizedPath = this.normalizePath(projectPath)
 
     // Check if project already exists at this path

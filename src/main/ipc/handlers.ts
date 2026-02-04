@@ -1,34 +1,58 @@
 import { ipcMain } from 'electron'
 import { IPC_CHANNELS } from '../../shared/ipc-types'
-import { ProjectService } from '../projects'
+import { getProjectService } from '../projects'
 import type { ProjectUpdate } from '../../shared/project-types'
 
-const projectService = new ProjectService()
-
 export function registerIpcHandlers(): void {
+  const projectService = getProjectService()
+
   // Projects
   ipcMain.handle(IPC_CHANNELS.GET_PROJECTS, () => {
-    return projectService.getProjects()
+    try {
+      return { success: true, data: projectService.getProjects() }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
   })
 
   ipcMain.handle(IPC_CHANNELS.GET_PROJECT, (_event, id: string) => {
-    return projectService.getProject(id)
+    try {
+      return { success: true, data: projectService.getProject(id) }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
   })
 
   ipcMain.handle(IPC_CHANNELS.ADD_PROJECT, (_event, path: string, name?: string) => {
-    return projectService.addProject(path, name)
+    try {
+      return { success: true, data: projectService.addProject(path, name) }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
   })
 
   ipcMain.handle(IPC_CHANNELS.REMOVE_PROJECT, (_event, id: string) => {
-    return projectService.removeProject(id)
+    try {
+      return { success: true, data: projectService.removeProject(id) }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
   })
 
   ipcMain.handle(IPC_CHANNELS.UPDATE_PROJECT, (_event, id: string, updates: ProjectUpdate) => {
-    return projectService.updateProject(id, updates)
+    try {
+      return { success: true, data: projectService.updateProject(id, updates) }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
   })
 
   ipcMain.handle(IPC_CHANNELS.PROJECT_EXISTS_AT_PATH, (_event, path: string) => {
-    return projectService.projectExistsAtPath(path)
+    try {
+      return { success: true, data: projectService.projectExistsAtPath(path) }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
   })
 
   // Tasks

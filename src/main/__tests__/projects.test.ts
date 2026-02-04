@@ -38,6 +38,23 @@ describe('ProjectService', () => {
   })
 
   describe('addProject', () => {
+    it('should reject empty path', () => {
+      expect(() => service.addProject('')).toThrow('Project path cannot be empty')
+      expect(() => service.addProject('   ')).toThrow('Project path cannot be empty')
+    })
+
+    it('should reject relative path', () => {
+      expect(() => service.addProject('relative/path')).toThrow(
+        'Project path must be absolute'
+      )
+      expect(() => service.addProject('./relative/path')).toThrow(
+        'Project path must be absolute'
+      )
+      expect(() => service.addProject('../relative/path')).toThrow(
+        'Project path must be absolute'
+      )
+    })
+
     it('should create project with generated ID', () => {
       const testPath = '/test/project/path'
       const project = service.addProject(testPath, 'Test Project')
