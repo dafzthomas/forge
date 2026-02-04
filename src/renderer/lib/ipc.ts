@@ -29,4 +29,9 @@ export const ipc = {
     test: (config: unknown) => window.forge.invoke(IPC_CHANNELS.TEST_PROVIDER, config),
     getAll: () => window.forge.invoke(IPC_CHANNELS.GET_PROVIDERS),
   },
+  review: {
+    request: (request: unknown) => window.forge.invoke(IPC_CHANNELS.REQUEST_REVIEW, request),
+    get: (id: string) => window.forge.invoke(IPC_CHANNELS.GET_REVIEW, id),
+    list: (projectId: string) => window.forge.invoke(IPC_CHANNELS.LIST_REVIEWS, projectId),
+  },
 }
