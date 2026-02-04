@@ -7,6 +7,10 @@
  * - Layer 3: Plugin providers (future)
  */
 
+// Re-export shared provider types
+export { ProviderType, ProviderConfig } from '../../shared/provider-types'
+import type { ProviderConfig } from '../../shared/provider-types'
+
 /**
  * Chat message format compatible with OpenAI/Anthropic APIs
  */
@@ -34,22 +38,6 @@ export interface ChatResponse {
 export interface ChatStreamChunk {
   content: string
   done: boolean
-}
-
-/**
- * Provider configuration stored in settings
- */
-export interface ProviderConfig {
-  /** Unique identifier for the provider instance */
-  id: string
-  /** Type of provider */
-  type: 'claude' | 'bedrock' | 'openai' | 'openai-compatible'
-  /** Display name shown in UI */
-  name: string
-  /** Whether this provider is enabled */
-  enabled: boolean
-  /** Type-specific configuration stored as JSON */
-  config: Record<string, unknown>
 }
 
 /**

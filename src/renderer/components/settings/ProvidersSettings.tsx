@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import * as Switch from '@radix-ui/react-switch'
+import type { ProviderType, ProviderConfig } from '../../../shared/provider-types'
 
-type ProviderType = 'claude' | 'bedrock' | 'openai-compatible'
 type BedrockAuthType = 'profile' | 'credentials'
 
 interface ClaudeConfig {
@@ -23,14 +23,15 @@ interface OpenAICompatibleConfig {
   defaultModel?: string
 }
 
-type ProviderConfig = ClaudeConfig | BedrockConfig | OpenAICompatibleConfig
+type LocalProviderConfig = ClaudeConfig | BedrockConfig | OpenAICompatibleConfig
 
-interface Provider {
-  id: string
-  type: ProviderType
-  name: string
-  enabled: boolean
-  config: ProviderConfig
+/**
+ * Provider interface for UI components.
+ * Uses ProviderConfig from shared types for the base structure,
+ * but with a more specific config type for form handling.
+ */
+interface Provider extends Omit<ProviderConfig, 'config'> {
+  config: LocalProviderConfig
 }
 
 interface TestResult {
@@ -237,7 +238,7 @@ function ProviderForm({ provider, onSave, onCancel, isEditing }: ProviderFormPro
       return
     }
 
-    let config: ProviderConfig
+    let config: LocalProviderConfig
 
     if (type === 'claude') {
       config = {
