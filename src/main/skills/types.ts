@@ -55,3 +55,29 @@ export interface SkillFrontmatter {
   triggers?: string[]
   inputs?: SkillInput[]
 }
+
+/**
+ * Skill format type
+ */
+export type SkillFormat = 'forge' | 'claude-code'
+
+/**
+ * Claude Code skill frontmatter format
+ */
+export interface ClaudeCodeSkillFrontmatter {
+  name: string
+  description?: string
+  trigger?: string | string[]
+  args?: ClaudeCodeArg[]
+}
+
+/**
+ * Claude Code argument definition
+ */
+export interface ClaudeCodeArg {
+  name: string
+  type?: string
+  description?: string
+  required?: boolean
+  default?: unknown
+}
