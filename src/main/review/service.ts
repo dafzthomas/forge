@@ -106,7 +106,11 @@ export class ReviewService {
         )
       }
 
-      return this.getReview(reviewId)!
+      const review = this.getReview(reviewId)
+      if (!review) {
+        throw new Error('Failed to retrieve review after creation')
+      }
+      return review
     } catch (error) {
       // Mark review as failed
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
@@ -151,13 +155,26 @@ export class ReviewService {
       .prepare('SELECT * FROM reviews WHERE project_id = ? ORDER BY created_at DESC')
       .all(projectId) as ReviewRow[]
 
-    return reviewRows.map((reviewRow) => {
-      const commentRows = db
-        .prepare('SELECT * FROM review_comments WHERE review_id = ?')
-        .all(reviewRow.id) as ReviewCommentRow[]
+    if (reviewRows.length === 0) return []
 
-      return this.rowToReview(reviewRow, commentRows)
-    })
+    // Batch fetch all comments to avoid N+1 query
+    const reviewIds = reviewRows.map((r) => r.id)
+    const placeholders = reviewIds.map(() => '?').join(',')
+    const allComments = db
+      .prepare(`SELECT * FROM review_comments WHERE review_id IN (${placeholders})`)
+      .all(...reviewIds) as ReviewCommentRow[]
+
+    // Group comments by review_id
+    const commentsByReview = new Map<string, ReviewCommentRow[]>()
+    for (const comment of allComments) {
+      const existing = commentsByReview.get(comment.review_id) || []
+      existing.push(comment)
+      commentsByReview.set(comment.review_id, existing)
+    }
+
+    return reviewRows.map((reviewRow) =>
+      this.rowToReview(reviewRow, commentsByReview.get(reviewRow.id) || [])
+    )
   }
 
   /**
@@ -187,7 +204,13 @@ export class ReviewService {
     const result: Array<{ path: string; content: string; diff?: string }> = []
 
     for (const filePath of filePaths) {
-      const fullPath = path.join(projectPath, filePath)
+      const fullPath = path.resolve(projectPath, filePath)
+
+      // Ensure the resolved path is within the project directory
+      if (!fullPath.startsWith(path.resolve(projectPath) + path.sep)) {
+        console.warn(`Path traversal attempt blocked: ${filePath}`)
+        continue
+      }
 
       try {
         // Read file content
@@ -263,20 +286,25 @@ export class ReviewService {
       // Try to parse as JSON
       const parsed = JSON.parse(response)
 
-      // Assign IDs to comments
-      const comments: ReviewComment[] = (parsed.comments || []).map((comment: any) => ({
-        id: randomUUID(),
-        file: comment.file,
-        line: comment.line,
-        endLine: comment.endLine,
-        severity: comment.severity || 'info',
-        message: comment.message,
-        suggestion: comment.suggestion,
-      }))
+      // Assign IDs to comments with runtime validation
+      const comments: ReviewComment[] = (Array.isArray(parsed.comments) ? parsed.comments : [])
+        .filter((comment: unknown): comment is Record<string, unknown> =>
+          comment !== null && typeof comment === 'object' &&
+          typeof (comment as Record<string, unknown>).file === 'string'
+        )
+        .map((comment) => ({
+          id: randomUUID(),
+          file: String(comment.file),
+          line: typeof comment.line === 'number' ? comment.line : undefined,
+          endLine: typeof comment.endLine === 'number' ? comment.endLine : undefined,
+          severity: this.isValidSeverity(comment.severity) ? comment.severity : 'info',
+          message: typeof comment.message === 'string' ? comment.message : 'No message provided',
+          suggestion: typeof comment.suggestion === 'string' ? comment.suggestion : undefined,
+        }))
 
       return {
-        summary: parsed.summary || 'No summary provided',
-        approved: parsed.approved ?? false,
+        summary: typeof parsed.summary === 'string' ? parsed.summary : 'No summary provided',
+        approved: typeof parsed.approved === 'boolean' ? parsed.approved : false,
         comments,
       }
     } catch {
@@ -287,6 +315,13 @@ export class ReviewService {
         comments: [],
       }
     }
+  }
+
+  /**
+   * Helper function to validate severity
+   */
+  private isValidSeverity(value: unknown): value is 'error' | 'warning' | 'info' | 'suggestion' {
+    return typeof value === 'string' && ['error', 'warning', 'info', 'suggestion'].includes(value)
   }
 
   /**
