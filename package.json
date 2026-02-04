@@ -19,7 +19,8 @@
     "package": "electron-builder",
     "package:mac": "electron-builder --mac",
     "package:win": "electron-builder --win",
-    "package:linux": "electron-builder --linux"
+    "package:linux": "electron-builder --linux",
+    "postinstall": "electron-rebuild"
   },
   "keywords": [],
   "author": "",
@@ -48,6 +49,7 @@
   },
   "devDependencies": {
     "@electron/notarize": "^3.1.1",
+    "@electron/rebuild": "^4.0.3",
     "@tailwindcss/postcss": "^4.1.18",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
