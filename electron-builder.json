@@ -12,14 +12,26 @@
   ],
   "mac": {
     "category": "public.app-category.developer-tools",
-    "target": ["dmg", "zip"],
+    "target": [
+      { "target": "dmg", "arch": ["x64", "arm64"] },
+      { "target": "zip", "arch": ["x64", "arm64"] }
+    ],
     "hardenedRuntime": true,
     "gatekeeperAssess": false,
     "entitlements": "build/entitlements.mac.plist",
-    "entitlementsInherit": "build/entitlements.mac.plist"
+    "entitlementsInherit": "build/entitlements.mac.plist",
+    "notarize": {
+      "teamId": "${env.APPLE_TEAM_ID}"
+    }
   },
   "win": {
-    "target": ["nsis", "portable"]
+    "target": [
+      { "target": "nsis", "arch": ["x64"] },
+      { "target": "portable", "arch": ["x64"] }
+    ],
+    "signingHashAlgorithms": ["sha256"],
+    "certificateSubjectName": "${env.WIN_CERT_SUBJECT}",
+    "publisherName": "${env.WIN_PUBLISHER_NAME}"
   },
   "linux": {
     "target": ["AppImage", "deb"],
@@ -32,5 +44,6 @@
   "publish": {
     "provider": "github",
     "releaseType": "release"
-  }
+  },
+  "afterSign": "scripts/notarize.js"
 }
