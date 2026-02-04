@@ -21,3 +21,7 @@ export type {
 
 // Export registry
 export { ModelProviderRegistry } from './registry'
+
+// Export providers
+export { ClaudeProvider } from './claude'
+export type { ClaudeProviderConfig } from './claude'
