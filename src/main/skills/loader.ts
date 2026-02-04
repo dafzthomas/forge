@@ -14,6 +14,14 @@ import { parseSkillFile } from './parser'
 import type { Skill, SkillSourceType } from './types'
 
 /**
+ * Check if a resolved path is within a given directory (prevents path traversal)
+ */
+function isPathWithinDirectory(resolvedPath: string, directory: string): boolean {
+  const resolvedDir = path.resolve(directory)
+  return resolvedPath.startsWith(resolvedDir + path.sep) || resolvedPath === resolvedDir
+}
+
+/**
  * SkillLoader handles loading skills from multiple sources with priority ordering
  */
 export class SkillLoader {
@@ -68,6 +76,11 @@ export class SkillLoader {
    * @returns The skill if found, null otherwise
    */
   async getSkill(name: string, projectPath?: string): Promise<Skill | null> {
+    // Validate skill name to prevent path traversal
+    if (!this.validateSkillName(name)) {
+      console.debug(`Invalid skill name: ${name}`)
+      return null
+    }
     // Search in priority order (highest to lowest)
     const searchDirs: Array<{ dir: string; sourceType: SkillSourceType }> = []
 
@@ -120,15 +133,26 @@ export class SkillLoader {
     sourceType: SkillSourceType,
     skills: Map<string, Skill>
   ): Promise<void> {
-    if (!fs.existsSync(dir)) return
-
     try {
       const files = await fs.promises.readdir(dir)
+      // Resolve the directory to handle any symlinks in the directory path itself
+      const resolvedDir = await fs.promises.realpath(dir)
+
       for (const file of files) {
         if (!file.endsWith('.md')) continue
 
         const filePath = path.join(dir, file)
+
         try {
+          // Resolve symlinks in the file path
+          const resolvedPath = await fs.promises.realpath(filePath)
+
+          // Security: Verify resolved path stays within resolved directory (prevents symlink traversal)
+          if (!isPathWithinDirectory(resolvedPath, resolvedDir)) {
+            console.debug(`Skipping file outside directory: ${filePath}`)
+            continue
+          }
+
           const stat = await fs.promises.stat(filePath)
           if (!stat.isFile()) continue
 
@@ -139,13 +163,23 @@ export class SkillLoader {
             // Later sources override earlier ones
             skills.set(skill.name, skill)
           }
-        } catch {
-          // Skip files that can't be read
+        } catch (error) {
+          console.debug(
+            `Failed to read skill file ${filePath}:`,
+            error instanceof Error ? error.message : error
+          )
           continue
         }
       }
-    } catch {
-      // Directory read failed, skip silently
+    } catch (error) {
+      // Handle non-existent directory gracefully
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        return
+      }
+      console.debug(
+        `Failed to read directory ${dir}:`,
+        error instanceof Error ? error.message : error
+      )
       return
     }
   }
@@ -158,15 +192,26 @@ export class SkillLoader {
     dir: string,
     sourceType: SkillSourceType
   ): Promise<Skill | null> {
-    if (!fs.existsSync(dir)) return null
-
     try {
       const files = await fs.promises.readdir(dir)
+      // Resolve the directory to handle any symlinks in the directory path itself
+      const resolvedDir = await fs.promises.realpath(dir)
+
       for (const file of files) {
         if (!file.endsWith('.md')) continue
 
         const filePath = path.join(dir, file)
+
         try {
+          // Resolve symlinks in the file path
+          const resolvedPath = await fs.promises.realpath(filePath)
+
+          // Security: Verify resolved path stays within resolved directory (prevents symlink traversal)
+          if (!isPathWithinDirectory(resolvedPath, resolvedDir)) {
+            console.debug(`Skipping file outside directory: ${filePath}`)
+            continue
+          }
+
           const stat = await fs.promises.stat(filePath)
           if (!stat.isFile()) continue
 
@@ -176,16 +221,34 @@ export class SkillLoader {
           if (skill && skill.name === name) {
             return skill
           }
-        } catch {
-          // Skip files that can't be read
+        } catch (error) {
+          console.debug(
+            `Failed to read skill file ${filePath}:`,
+            error instanceof Error ? error.message : error
+          )
           continue
         }
       }
-    } catch {
-      // Directory read failed
+    } catch (error) {
+      // Handle non-existent directory gracefully
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        return null
+      }
+      console.debug(
+        `Failed to read directory ${dir}:`,
+        error instanceof Error ? error.message : error
+      )
       return null
     }
 
     return null
+  }
+
+  /**
+   * Validate skill name to prevent path traversal attacks
+   * Only allows alphanumeric characters, hyphens, and underscores
+   */
+  private validateSkillName(name: string): boolean {
+    return /^[a-zA-Z0-9_-]+$/.test(name)
   }
 }
