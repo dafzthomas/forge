@@ -1,6 +1,7 @@
 import * as Tabs from '@radix-ui/react-tabs'
 import { GeneralSettings } from '../components/settings/GeneralSettings'
 import { AppearanceSettings } from '../components/settings/AppearanceSettings'
+import { ProvidersSettings } from '../components/settings/ProvidersSettings'
 
 export function Settings() {
   return (
@@ -37,7 +38,7 @@ export function Settings() {
             <AppearanceSettings />
           </Tabs.Content>
           <Tabs.Content value="providers">
-            <div>Provider settings coming soon...</div>
+            <ProvidersSettings />
           </Tabs.Content>
         </div>
       </Tabs.Root>
