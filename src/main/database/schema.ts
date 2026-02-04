@@ -99,4 +99,59 @@ CREATE TABLE IF NOT EXISTS watch_rules (
 
 CREATE INDEX IF NOT EXISTS idx_watch_rules_project ON watch_rules(project_id);
 CREATE INDEX IF NOT EXISTS idx_watch_rules_enabled ON watch_rules(enabled);
+
+CREATE TABLE IF NOT EXISTS conversations (
+  id TEXT PRIMARY KEY,
+  task_id TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  title TEXT,
+  started_at TEXT NOT NULL,
+  ended_at TEXT,
+  message_count INTEGER NOT NULL DEFAULT 0,
+  FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+  FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS conversation_messages (
+  id TEXT PRIMARY KEY,
+  conversation_id TEXT NOT NULL,
+  role TEXT NOT NULL,
+  content TEXT NOT NULL,
+  tool_name TEXT,
+  tool_input TEXT,
+  tool_output TEXT,
+  timestamp TEXT NOT NULL,
+  FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS task_logs (
+  id TEXT PRIMARY KEY,
+  task_id TEXT NOT NULL,
+  level TEXT NOT NULL,
+  message TEXT NOT NULL,
+  metadata TEXT,
+  timestamp TEXT NOT NULL,
+  FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_conversations_task ON conversations(task_id);
+CREATE INDEX IF NOT EXISTS idx_conversations_project ON conversations(project_id);
+CREATE INDEX IF NOT EXISTS idx_conversations_started ON conversations(started_at);
+CREATE INDEX IF NOT EXISTS idx_conversation_messages_conversation ON conversation_messages(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_conversation_messages_timestamp ON conversation_messages(timestamp);
+CREATE INDEX IF NOT EXISTS idx_task_logs_task ON task_logs(task_id);
+CREATE INDEX IF NOT EXISTS idx_task_logs_timestamp ON task_logs(timestamp);
+CREATE INDEX IF NOT EXISTS idx_task_logs_level ON task_logs(level);
+
+CREATE VIRTUAL TABLE IF NOT EXISTS conversations_fts USING fts5(
+  title,
+  content='conversations',
+  content_rowid='rowid'
+);
+
+CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(
+  content,
+  content='conversation_messages',
+  content_rowid='rowid'
+);
 `
