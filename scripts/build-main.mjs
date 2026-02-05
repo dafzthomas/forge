@@ -11,6 +11,7 @@ const external = [
 
 const isDev = process.argv.includes('--dev')
 
+// Build main process
 await esbuild.build({
   entryPoints: ['src/main/index.ts'],
   bundle: true,
@@ -19,6 +20,19 @@ await esbuild.build({
   outfile: 'dist/main/index.cjs',
   format: 'cjs',
   external,
+  sourcemap: isDev,
+  minify: !isDev,
+})
+
+// Build preload script
+await esbuild.build({
+  entryPoints: ['src/main/preload.ts'],
+  bundle: true,
+  platform: 'node',
+  target: 'node20',
+  outfile: 'dist/main/preload.js',
+  format: 'cjs',
+  external: ['electron'],
   sourcemap: isDev,
   minify: !isDev,
 })
