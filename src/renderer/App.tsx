@@ -1,5 +1,5 @@
 import { Sidebar } from './components/Sidebar'
-import { MainPanel } from './components/MainPanel'
+import { ChatView, ChangedFilesPanel } from './components/chat'
 import { StatusBar } from './components/StatusBar'
 import { UpdateNotification } from './components/updater'
 
@@ -8,7 +8,8 @@ export default function App() {
     <div data-testid="app-shell" className="flex flex-col h-screen bg-gray-900 text-white">
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
-        <MainPanel />
+        <ChatView />
+        <ChangedFilesPanel />
       </div>
       <StatusBar />
       <UpdateNotification />
