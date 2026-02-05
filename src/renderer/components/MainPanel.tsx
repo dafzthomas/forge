@@ -3,6 +3,7 @@ import { TaskList, TaskOutput } from './tasks'
 import { useProjectStore } from '../stores/projectStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { IPC_CHANNELS } from '../../shared/ipc-types'
+import { PROVIDER_MODELS } from '../../shared/provider-types'
 import type { Task } from '@shared/task-types'
 
 // Declare forge API on window
@@ -24,9 +25,16 @@ export function MainPanel() {
   const selectedTask = tasks.find((t) => t.id === selectedTaskId)
 
   const { activeProjectId, projects } = useProjectStore()
-  const { selectedProviderId, providers } = useSettingsStore()
+  const { selectedProviderId, selectedModelId, providers } = useSettingsStore()
   const activeProject = projects.find((p) => p.id === activeProjectId)
   const selectedProvider = providers.find((p) => p.id === selectedProviderId)
+  const availableModels = selectedProvider ? PROVIDER_MODELS[selectedProvider.type] : []
+  const selectedModel = availableModels.find((m) => m.id === selectedModelId)
+
+  // For openai-compatible, use custom model from config
+  const effectiveModelId = selectedProvider?.type === 'openai-compatible'
+    ? (selectedProvider.config as { defaultModel?: string }).defaultModel || 'custom'
+    : selectedModelId
 
   const handleSelectTask = (taskId: string) => {
     setSelectedTaskId(taskId)
@@ -44,7 +52,7 @@ export function MainPanel() {
   }
 
   const handleSubmit = async () => {
-    if (!prompt.trim() || !activeProjectId || !selectedProviderId || isSubmitting) {
+    if (!prompt.trim() || !activeProjectId || !selectedProviderId || !effectiveModelId || isSubmitting) {
       return
     }
 
@@ -54,6 +62,7 @@ export function MainPanel() {
         projectId: activeProjectId,
         prompt: prompt.trim(),
         providerId: selectedProviderId,
+        modelId: effectiveModelId,
       }) as { success: boolean; data?: Task; error?: string }
 
       if (result.success && result.data) {
@@ -77,7 +86,17 @@ export function MainPanel() {
     }
   }
 
-  const canSubmit = prompt.trim() && activeProjectId && selectedProviderId && !isSubmitting
+  const canSubmit = prompt.trim() && activeProjectId && selectedProviderId && effectiveModelId && !isSubmitting
+
+  const getPlaceholder = () => {
+    if (!activeProjectId) return 'Select a project first...'
+    if (!selectedProviderId) return 'Select a provider first...'
+    if (!effectiveModelId) return 'Select a model first...'
+    return 'Ask Forge... (Enter to send, Shift+Enter for new line)'
+  }
+
+  const modelDisplayName = selectedModel?.name ||
+    (selectedProvider?.type === 'openai-compatible' ? effectiveModelId : null)
 
   return (
     <main className="flex-1 flex flex-col bg-gray-900">
@@ -91,14 +110,8 @@ export function MainPanel() {
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={
-              !activeProjectId
-                ? 'Select a project first...'
-                : !selectedProviderId
-                ? 'Select a model first...'
-                : 'Ask Forge... (Enter to send, Shift+Enter for new line)'
-            }
-            disabled={!activeProjectId || !selectedProviderId}
+            placeholder={getPlaceholder()}
+            disabled={!activeProjectId || !selectedProviderId || !effectiveModelId}
             aria-label="Enter a task for Forge"
             className="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed resize-none"
             rows={1}
@@ -111,9 +124,9 @@ export function MainPanel() {
             {isSubmitting ? 'Sending...' : 'Send'}
           </button>
         </div>
-        {activeProject && selectedProvider && (
+        {activeProject && selectedProvider && modelDisplayName && (
           <div className="mt-2 text-xs text-gray-500">
-            Project: {activeProject.name} | Model: {selectedProvider.name}
+            Project: {activeProject.name} | Provider: {selectedProvider.name} | Model: {modelDisplayName}
           </div>
         )}
       </div>
