@@ -1,4 +1,4 @@
-import { app, ipcMain } from 'electron'
+import { app, ipcMain, dialog } from 'electron'
 import { IPC_CHANNELS } from '../../shared/ipc-types'
 import { getProjectService } from '../projects'
 import { getTaskQueueService } from '../tasks'
@@ -20,6 +20,18 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.APP_GET_NAME, () => {
     return app.getName()
+  })
+
+  // Dialog
+  ipcMain.handle(IPC_CHANNELS.DIALOG_OPEN_FOLDER, async () => {
+    const result = await dialog.showOpenDialog({
+      properties: ['openDirectory'],
+      title: 'Open Project Folder',
+    })
+    if (result.canceled || result.filePaths.length === 0) {
+      return { success: true, data: null }
+    }
+    return { success: true, data: result.filePaths[0] }
   })
 
   // Projects

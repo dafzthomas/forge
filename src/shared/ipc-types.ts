@@ -3,6 +3,9 @@ export const IPC_CHANNELS = {
   APP_GET_VERSION: 'app:getVersion',
   APP_GET_NAME: 'app:getName',
 
+  // Dialog
+  DIALOG_OPEN_FOLDER: 'dialog:openFolder',
+
   // Projects
   GET_PROJECTS: 'projects:get',
   GET_PROJECT: 'projects:getOne',

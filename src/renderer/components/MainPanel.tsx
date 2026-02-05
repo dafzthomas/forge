@@ -19,13 +19,17 @@ export function MainPanel() {
 
   return (
     <main className="flex-1 flex flex-col bg-gray-900">
-      {/* Task input area */}
-      <div className="p-4 border-b border-gray-700">
+      {/* Task input area with draggable header */}
+      <div
+        className="p-4 pt-8 border-b border-gray-700"
+        style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+      >
         <input
           type="text"
           placeholder="Ask Forge..."
           aria-label="Enter a task for Forge"
           className="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         />
       </div>
 
