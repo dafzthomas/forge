@@ -9,6 +9,7 @@ interface SettingsState {
   defaultModel: string | null
   maxParallelAgents: number
   providers: ProviderConfig[]
+  selectedProviderId: string | null
   setTheme: (theme: Theme) => void
   setDefaultModel: (model: string | null) => void
   setMaxParallelAgents: (count: number) => void
@@ -16,6 +17,7 @@ interface SettingsState {
   updateProvider: (id: string, provider: ProviderConfig) => void
   removeProvider: (id: string) => void
   toggleProvider: (id: string, enabled: boolean) => void
+  setSelectedProvider: (id: string | null) => void
   reset: () => void
 }
 
@@ -24,6 +26,7 @@ const initialState = {
   defaultModel: null,
   maxParallelAgents: 2,
   providers: [] as ProviderConfig[],
+  selectedProviderId: null as string | null,
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -49,6 +52,7 @@ export const useSettingsStore = create<SettingsState>()(
             p.id === id ? { ...p, enabled } : p
           ),
         })),
+      setSelectedProvider: (id) => set({ selectedProviderId: id }),
       reset: () => set(initialState),
     }),
     { name: 'forge-settings' }
