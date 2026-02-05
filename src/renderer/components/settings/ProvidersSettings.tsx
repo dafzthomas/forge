@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import * as Switch from '@radix-ui/react-switch'
 import type { ProviderType, ProviderConfig } from '../../../shared/provider-types'
+import { useSettingsStore } from '../../stores/settingsStore'
 
 type BedrockAuthType = 'profile' | 'credentials'
 
@@ -540,11 +541,20 @@ function ProviderForm({ provider, onSave, onCancel, isEditing }: ProviderFormPro
 }
 
 export function ProvidersSettings() {
-  const [providers, setProviders] = useState<Provider[]>([])
+  const {
+    providers,
+    addProvider,
+    updateProvider,
+    removeProvider,
+    toggleProvider,
+  } = useSettingsStore()
   const [editingProvider, setEditingProvider] = useState<Partial<Provider> | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [testingId, setTestingId] = useState<string | null>(null)
   const [testResults, setTestResults] = useState<Record<string, TestResult>>({})
+
+  // Cast providers from store to local Provider type
+  const typedProviders = providers as Provider[]
 
   const handleAddProvider = () => {
     setEditingProvider({
@@ -561,17 +571,15 @@ export function ProvidersSettings() {
 
   const handleSaveProvider = (provider: Provider) => {
     if (isEditing) {
-      setProviders((prev) =>
-        prev.map((p) => (p.id === provider.id ? provider : p))
-      )
+      updateProvider(provider.id, provider)
     } else {
-      setProviders((prev) => [...prev, provider])
+      addProvider(provider)
     }
     setEditingProvider(null)
   }
 
   const handleRemoveProvider = (id: string) => {
-    setProviders((prev) => prev.filter((p) => p.id !== id))
+    removeProvider(id)
     // Clean up test results
     setTestResults((prev) => {
       const newResults = { ...prev }
@@ -581,9 +589,7 @@ export function ProvidersSettings() {
   }
 
   const handleToggleProvider = (id: string, enabled: boolean) => {
-    setProviders((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, enabled } : p))
-    )
+    toggleProvider(id, enabled)
   }
 
   const handleTestConnection = async (id: string) => {
@@ -619,7 +625,7 @@ export function ProvidersSettings() {
 
       {/* Provider List */}
       <div className="space-y-4">
-        {providers.map((provider) => (
+        {typedProviders.map((provider) => (
           <ProviderCard
             key={provider.id}
             provider={provider}
@@ -634,7 +640,7 @@ export function ProvidersSettings() {
       </div>
 
       {/* Empty state */}
-      {providers.length === 0 && (
+      {typedProviders.length === 0 && (
         <div className="text-center text-gray-400 py-8">
           No providers configured. Add one to get started.
         </div>
