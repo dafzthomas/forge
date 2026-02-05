@@ -20,7 +20,7 @@
     "package:mac": "electron-builder --mac",
     "package:win": "electron-builder --win",
     "package:linux": "electron-builder --linux",
-    "postinstall": "electron-rebuild"
+    "postinstall": "node scripts/postinstall.mjs"
   },
   "keywords": [],
   "author": "",
