@@ -72,6 +72,12 @@ export const IPC_CHANNELS = {
   HISTORY_EXPORT: 'history:export',
   HISTORY_LOG: 'history:log',
   HISTORY_GET_LOGS: 'history:getLogs',
+
+  // Chat / AI
+  CHAT_SEND_MESSAGE: 'chat:sendMessage',
+  CHAT_STREAM_CHUNK: 'chat:streamChunk',
+  CHAT_STREAM_END: 'chat:streamEnd',
+  CHAT_STREAM_ERROR: 'chat:streamError',
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]

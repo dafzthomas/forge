@@ -4,10 +4,24 @@ import { useProjectStore } from '../../stores/projectStore'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { useChatStore, type Message } from '../../stores/chatStore'
 import { PROVIDER_MODELS } from '../../../shared/provider-types'
+import { IPC_CHANNELS } from '../../../shared/ipc-types'
+
+// Declare forge API on window
+declare global {
+  interface Window {
+    forge: {
+      invoke: (channel: string, ...args: unknown[]) => Promise<unknown>
+      on: (channel: string, callback: (...args: unknown[]) => void) => void
+      off: (channel: string, callback: (...args: unknown[]) => void) => void
+    }
+  }
+}
 
 export function ChatView() {
   const [input, setInput] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [streamingContent, setStreamingContent] = useState('')
+  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const { activeProjectId, projects } = useProjectStore()
@@ -36,10 +50,64 @@ export function ChatView() {
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  }, [messages, streamingContent])
+
+  // Listen for streaming responses
+  useEffect(() => {
+    const handleStreamChunk = (data: { conversationId: string; content: string; fullContent: string; done: boolean }) => {
+      if (data.conversationId === activeConversationId) {
+        setStreamingContent(data.fullContent)
+      }
+    }
+
+    const handleStreamEnd = (data: { conversationId: string; content: string }) => {
+      if (data.conversationId === activeConversationId && streamingMessageId) {
+        // Update the message with final content
+        const finalMessage: Message = {
+          id: streamingMessageId,
+          role: 'assistant',
+          content: data.content,
+          timestamp: new Date(),
+        }
+        addMessage(activeConversationId, finalMessage)
+        setStreamingContent('')
+        setStreamingMessageId(null)
+        setIsSubmitting(false)
+      }
+    }
+
+    const handleStreamError = (data: { conversationId: string; error: string }) => {
+      if (data.conversationId === activeConversationId) {
+        console.error('Stream error:', data.error)
+        // Add error message
+        if (streamingMessageId) {
+          const errorMessage: Message = {
+            id: streamingMessageId,
+            role: 'assistant',
+            content: `Error: ${data.error}`,
+            timestamp: new Date(),
+          }
+          addMessage(activeConversationId, errorMessage)
+        }
+        setStreamingContent('')
+        setStreamingMessageId(null)
+        setIsSubmitting(false)
+      }
+    }
+
+    window.forge.on(IPC_CHANNELS.CHAT_STREAM_CHUNK, handleStreamChunk)
+    window.forge.on(IPC_CHANNELS.CHAT_STREAM_END, handleStreamEnd)
+    window.forge.on(IPC_CHANNELS.CHAT_STREAM_ERROR, handleStreamError)
+
+    return () => {
+      window.forge.off(IPC_CHANNELS.CHAT_STREAM_CHUNK, handleStreamChunk)
+      window.forge.off(IPC_CHANNELS.CHAT_STREAM_END, handleStreamEnd)
+      window.forge.off(IPC_CHANNELS.CHAT_STREAM_ERROR, handleStreamError)
+    }
+  }, [activeConversationId, streamingMessageId, addMessage])
 
   const handleSubmit = async () => {
-    if (!canSubmit || !activeConversationId) return
+    if (!canSubmit || !activeConversationId || !selectedProvider) return
 
     const userMessage: Message = {
       id: crypto.randomUUID(),
@@ -52,20 +120,37 @@ export function ChatView() {
     setInput('')
     setIsSubmitting(true)
 
-    // TODO: Call AI API and get response
-    // For now, simulate a response
-    setTimeout(() => {
-      const assistantMessage: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: 'I\'ll help you with that. Let me analyze the codebase and make the necessary changes.',
-        timestamp: new Date(),
-        thinkingTime: 3,
-        exploredFiles: ['src/index.ts', 'package.json'],
+    // Create a placeholder for the streaming message
+    const assistantMessageId = crypto.randomUUID()
+    setStreamingMessageId(assistantMessageId)
+    setStreamingContent('')
+
+    // Build messages array from conversation history
+    const chatMessages = [...messages, userMessage].map((m) => ({
+      role: m.role,
+      content: m.content,
+    }))
+
+    try {
+      // Call the AI via IPC
+      const result = await window.forge.invoke(IPC_CHANNELS.CHAT_SEND_MESSAGE, {
+        providerId: selectedProviderId,
+        providerConfig: selectedProvider,
+        modelId: effectiveModelId,
+        messages: chatMessages,
+        conversationId: activeConversationId,
+        projectPath: activeProject?.path,
+      }) as { success: boolean; error?: string }
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to send message')
       }
-      addMessage(activeConversationId, assistantMessage)
+      // Response will come via stream events
+    } catch (error) {
+      console.error('Failed to send message:', error)
       setIsSubmitting(false)
-    }, 1500)
+      setStreamingMessageId(null)
+    }
   }
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -109,7 +194,7 @@ export function ChatView() {
 
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto p-6">
-        {messages.length === 0 ? (
+        {messages.length === 0 && !streamingContent ? (
           <div className="flex items-center justify-center h-full text-gray-500">
             {activeConversationId ? 'Start a conversation...' : 'Select or create a conversation'}
           </div>
@@ -126,6 +211,28 @@ export function ChatView() {
                 editedFiles={message.editedFiles}
               />
             ))}
+            {/* Show streaming response */}
+            {streamingContent && (
+              <div className="mb-6">
+                <div className="text-xs text-gray-500 mb-2 flex items-center gap-2">
+                  <span className="inline-block w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                  Thinking...
+                </div>
+                <div className="text-gray-200 leading-relaxed whitespace-pre-wrap">
+                  {streamingContent}
+                  <span className="inline-block w-2 h-4 bg-gray-400 animate-pulse ml-0.5" />
+                </div>
+              </div>
+            )}
+            {/* Show loading indicator when waiting for first chunk */}
+            {isSubmitting && !streamingContent && (
+              <div className="mb-6">
+                <div className="text-xs text-gray-500 mb-2 flex items-center gap-2">
+                  <span className="inline-block w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                  Thinking...
+                </div>
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </div>
         )}
