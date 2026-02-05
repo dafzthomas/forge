@@ -30,7 +30,8 @@ export function ChatView() {
   const modelDisplayName = selectedModel?.name ||
     (selectedProvider?.type === 'openai-compatible' ? effectiveModelId : null)
 
-  const canSubmit = input.trim() && activeProjectId && selectedProviderId && effectiveModelId && activeConversationId && !isSubmitting
+  const isReady = !!(activeProjectId && activeConversationId && selectedProviderId && effectiveModelId)
+  const canSubmit = !!(input.trim() && isReady && !isSubmitting)
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -139,8 +140,8 @@ export function ChatView() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={getPlaceholder()}
-              disabled={!canSubmit && !input}
-              className="flex-1 bg-gray-800 border border-gray-600 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 disabled:opacity-50 resize-none"
+              disabled={!isReady}
+              className="flex-1 bg-gray-800 border border-gray-600 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed resize-none"
               rows={1}
             />
             <button
